@@ -52,17 +52,27 @@ pipeline {
     stage('Docker Up (Compose)') {
       steps {
         sh '''
-          docker-compose down -v || true
-          docker-compose up -d --build
+              set -e
 
-          echo "Waiting for app health..."
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/actuator/health | grep -q UP; then
-              echo "App is UP"
-              exit 0
-            fi
-            sleep 2
-          done
+              # Her ihtimale karşı önce compose'u indir
+              docker-compose down -v --remove-orphans || true
+
+              # İSİM ÇAKIŞMASI İÇİN: Aynı isimde container varsa zorla sil
+              docker rm -f bilet-db || true
+
+              # (Opsiyonel ama temiz) önceki build’den kalan dangling container/image/volume varsa temizle
+              docker container prune -f || true
+
+              docker-compose up -d --build
+
+              echo "Waiting for app health..."
+              for i in $(seq 1 30); do
+                if curl -fsS http://localhost:8080/actuator/health | grep -q UP; then
+                  echo "App is UP"
+                  exit 0
+                fi
+                sleep 2
+              done
 
           echo "App did not become healthy"
           docker-compose logs --tail=200

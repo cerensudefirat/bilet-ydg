@@ -3,10 +3,23 @@ pipeline {
 
   options {
     timestamps()
-    // skipDefaultCheckout(true) YOK!
+    skipDefaultCheckout(true)
   }
 
   stages {
+
+    stage('Clean Workspace') {
+      steps {
+        deleteDir()
+      }
+    }
+
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
     stage('Build') {
       steps {
         sh 'chmod +x mvnw || true'
@@ -16,24 +29,22 @@ pipeline {
 
     stage('Unit Tests') {
       steps {
-        sh 'chmod +x mvnw || true'
         sh './mvnw -B test'
       }
       post {
         always {
-          junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
+          junit '**/target/surefire-reports/*.xml'
         }
       }
     }
 
     stage('Integration Tests') {
       steps {
-        sh 'chmod +x mvnw || true'
         sh './mvnw -B failsafe:integration-test failsafe:verify'
       }
       post {
         always {
-          junit testResults: '**/target/failsafe-reports/*.xml', allowEmptyResults: true
+          junit '**/target/failsafe-reports/*.xml'
         }
       }
     }
@@ -41,7 +52,6 @@ pipeline {
     stage('Docker Up (Compose)') {
       steps {
         sh '''
-          docker-compose --version
           docker-compose down -v || true
           docker-compose up -d --build
 
@@ -54,8 +64,7 @@ pipeline {
             sleep 2
           done
 
-          echo "App did not become healthy in time"
-          docker-compose ps
+          echo "App did not become healthy"
           docker-compose logs --tail=200
           exit 1
         '''

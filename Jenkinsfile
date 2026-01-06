@@ -3,16 +3,10 @@ pipeline {
 
   options {
     timestamps()
-    skipDefaultCheckout(true)
+    // skipDefaultCheckout(true) YOK!
   }
 
   stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
-    }
-
     stage('Build') {
       steps {
         sh 'chmod +x mvnw || true'
@@ -48,7 +42,6 @@ pipeline {
       steps {
         sh '''
           docker-compose --version
-
           docker-compose down -v || true
           docker-compose up -d --build
 

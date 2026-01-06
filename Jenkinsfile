@@ -52,30 +52,33 @@ pipeline {
     stage('Docker Up (Compose)') {
       steps {
         sh '''
-              set -e
+          set -e
 
-              # Her ihtimale karşı önce compose'u indir
-              docker-compose down -v --remove-orphans || true
+          echo "Stopping any previous compose stack..."
+          docker-compose down -v --remove-orphans || true
 
-              # İSİM ÇAKIŞMASI İÇİN: Aynı isimde container varsa zorla sil
-              docker rm -f bilet-db || true
+          echo "Removing conflicting containers if they exist..."
+          docker rm -f bilet-app || true
+          docker rm -f bilet-db  || true
 
-              # (Opsiyonel ama temiz) önceki build’den kalan dangling container/image/volume varsa temizle
-              docker container prune -f || true
+          # Opsiyonel temizlik (istersen kaldırabilirsin)
+          docker container prune -f || true
 
-              docker-compose up -d --build
+          echo "Starting compose..."
+          docker-compose up -d --build
 
-              echo "Waiting for app health..."
-              for i in $(seq 1 30); do
-                if curl -fsS http://localhost:8080/actuator/health | grep -q UP; then
-                  echo "App is UP"
-                  exit 0
-                fi
-                sleep 2
-              done
+          echo "Waiting for app health..."
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8080/actuator/health | grep -q UP; then
+              echo "App is UP"
+              exit 0
+            fi
+            sleep 2
+          done
 
           echo "App did not become healthy"
-          docker-compose logs --tail=200
+          docker-compose ps || true
+          docker-compose logs --tail=200 || true
           exit 1
         '''
       }
@@ -84,7 +87,7 @@ pipeline {
 
   post {
     always {
-      sh 'docker-compose down -v || true'
+      sh 'docker-compose down -v --remove-orphans || true'
     }
   }
 }

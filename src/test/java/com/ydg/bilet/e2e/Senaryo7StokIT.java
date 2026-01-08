@@ -17,6 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @ActiveProfiles("test")
 public class Senaryo7StokIT {
 
+
+
+
     @LocalServerPort private int port;
     private WebDriver driver;
     private WebDriverWait wait;

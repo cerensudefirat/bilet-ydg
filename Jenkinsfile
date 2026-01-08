@@ -4,10 +4,10 @@ pipeline {
   options {
     timestamps()
     skipDefaultCheckout(true)
+    disableConcurrentBuilds() // aynı job aynı anda 2 kez çalışmasın
   }
 
   environment {
-    // Aynı makinede başka job'lar da koşarsa çakışmayı azaltır
     COMPOSE_PROJECT_NAME = "bilet-ydg-ci"
   }
 
@@ -42,14 +42,7 @@ pipeline {
       steps {
         sh '''
           set -e
-          # Docker Compose komutunu belirle
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
-
-          echo "=== CI Ön Temizlik: İsim çakışmalarını engelle ==="
-          # docker-compose.yml içinde container_name varsa bunlar şart (Conflict hatasını keser)
-          docker rm -f bilet-db || true
-          docker rm -f bilet-selenium || true
-          docker rm -f bilet-app || true
 
           echo "=== Eski compose kalıntıları temizleniyor ==="
           $COMPOSE_CMD down -v --remove-orphans || true
@@ -57,11 +50,29 @@ pipeline {
           echo "=== Yeni servisler ayağa kaldırılıyor ==="
           $COMPOSE_CMD up -d --build
 
-          echo "Servislerin (App, DB, Selenium) hazır olması bekleniyor..."
-          sleep 20
-
-          echo "=== Çalışan containerlar ==="
+          echo "=== Containerlar ==="
           docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+
+          echo "=== Sağlık kontrolleri (app/selenium) ==="
+          # app health
+          for i in $(seq 1 60); do
+            if $COMPOSE_CMD exec -T app sh -lc "curl -fsS http://localhost:8080/actuator/health >/dev/null"; then
+              echo "APP OK"
+              break
+            fi
+            echo "APP bekleniyor... ($i)"
+            sleep 2
+          done
+
+          # selenium health
+          for i in $(seq 1 60); do
+            if $COMPOSE_CMD exec -T selenium sh -lc "curl -fsS http://localhost:4444/wd/hub/status >/dev/null || curl -fsS http://localhost:4444/status >/dev/null"; then
+              echo "SELENIUM OK"
+              break
+            fi
+            echo "SELENIUM bekleniyor... ($i)"
+            sleep 2
+          done
         '''
       }
     }
@@ -72,7 +83,6 @@ pipeline {
           set -e
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-          # Tüm IT (Integration Test) sınıflarını (Senaryo 1-7) Docker ağında koşturur
           $COMPOSE_CMD run --rm \
             -e E2E_BASE_URL=http://app:8080 \
             -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \

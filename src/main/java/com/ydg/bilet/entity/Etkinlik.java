@@ -20,7 +20,7 @@ public class Etkinlik {
     private String baslik;
 
     @Column(nullable = false, length = 40)
-    private String tur;   // "Konser", "Tiyatro" (string kalsın istedin)
+    private String tur;
 
     @Column(nullable = false, length = 80)
     private String sehir;

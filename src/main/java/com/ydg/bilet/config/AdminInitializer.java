@@ -23,7 +23,6 @@ public class AdminInitializer {
 
     @PostConstruct
     public void init() {
-        // 1. Admin Kullanıcısı Oluşturma
         if (!repo.existsByEmail("admin@ydg.com")) {
             Kullanici a = new Kullanici();
             a.setEmail("admin@ydg.com");
@@ -36,7 +35,6 @@ public class AdminInitializer {
             System.out.println("TEST ADMIN KULLANICISI OLUŞTURULDU: admin@ydg.com");
         }
 
-        // 2. Mekan Oluşturma
         Mekan m;
         if (mekanRepo.count() == 0) {
             m = new Mekan();
@@ -50,21 +48,20 @@ public class AdminInitializer {
             m = mekanRepo.findAll().get(0);
         }
 
-        // 3. Etkinlik Oluşturma (Entity alan isimlerine göre düzeltildi)
         if (etkinlikRepo.count() == 0) {
             Etkinlik e = new Etkinlik();
-            e.setBaslik("Test Konseri"); // 'ad' yerine 'baslik'
-            e.setTur("Konser");         // Zorunlu alan
-            e.setSehir("İstanbul");      // Zorunlu alan
+            e.setBaslik("Test Konseri");
+            e.setTur("Konser");
+            e.setSehir("İstanbul");
             e.setTarih(LocalDateTime.now().plusDays(7));
-            e.setTemelFiyat(new BigDecimal("150.00")); // 'fiyat' yerine 'temelFiyat'
+            e.setTemelFiyat(new BigDecimal("150.00"));
             e.setKapasite(50);
             e.setSatilan(0);
             e.setDurum(EtkinlikDurum.ACTIVE);
             e.setMekan(m);
 
             etkinlikRepo.save(e);
-            System.out.println("✅ TEST ETKİNLİĞİ OLUŞTURULDU: Test Konseri");
+            System.out.println("TEST ETKİNLİĞİ OLUŞTURULDU: Test Konseri");
         }
     }
 }

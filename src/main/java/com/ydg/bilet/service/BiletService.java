@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor // Constructor yerine Lombok kullanımı kodu sadeleştirir
+@RequiredArgsConstructor
 public class BiletService {
 
     private final BiletRepository biletRepository;
@@ -35,21 +35,17 @@ public class BiletService {
 
     @Transactional
     public BiletSatinAlResponse satinAl(BiletSatinAlRequest req) {
-        // 1. Adet kontrolü ve varsayılan değer
         int adet = (req.getAdet() == null || req.getAdet() < 1) ? 1 : req.getAdet();
 
         Kullanici user = currentUser();
 
-        // 2. Etkinliği veritabanı kilidiyle çek (Race Condition engelleme)
         Etkinlik etkinlik = etkinlikRepository.findByIdForUpdate(req.getEtkinlikId())
                 .orElseThrow(() -> new NotFoundException("Etkinlik bulunamadı: " + req.getEtkinlikId()));
 
-        // 3. Etkinlik durum kontrolü
         if (etkinlik.getDurum() == EtkinlikDurum.CANCELLED) {
             throw new IllegalStateException("İptal edilmiş etkinlikten bilet alınamaz.");
         }
 
-        // 4. Kapasite hesaplaması (Null güvenli)
         int mevcutSatilan = (etkinlik.getSatilan() == null) ? 0 : etkinlik.getSatilan();
         int kalanOnce = etkinlik.getKapasite() - mevcutSatilan;
 
@@ -57,10 +53,8 @@ public class BiletService {
             throw new IllegalStateException("Kapasite yetersiz. Kalan koltuk: " + kalanOnce);
         }
 
-        // 5. Satılan sayısını güncelle
         etkinlik.setSatilan(mevcutSatilan + adet);
 
-        // 6. Biletleri üret ve listeye ekle
         List<Bilet> biletler = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -69,11 +63,10 @@ public class BiletService {
             b.setEtkinlik(etkinlik);
             b.setKullanici(user);
             b.setCreatedAt(now);
-            b.setDurum(BiletDurum.ACTIVE); // Bilet durumunu set etmeyi unutma
+            b.setDurum(BiletDurum.ACTIVE);
             biletler.add(b);
         }
 
-        // 7. Toplu kaydet
         biletRepository.saveAll(biletler);
 
         int kalanKoltuk = etkinlik.getKapasite() - etkinlik.getSatilan();
@@ -113,11 +106,9 @@ public class BiletService {
     public BiletIptalResponse iptalEt(Long biletId) {
         Kullanici user = currentUser();
 
-        // Bileti çek
         Bilet bilet = biletRepository.findById(biletId)
                 .orElseThrow(() -> new NotFoundException("Bilet bulunamadı: " + biletId));
 
-        // Sahiplik kontrolü
         if (!bilet.getKullanici().getId().equals(user.getId())) {
             throw new RuntimeException("Bu bileti iptal etme yetkiniz yok.");
         }
@@ -128,7 +119,6 @@ public class BiletService {
 
         Etkinlik etkinlik = bilet.getEtkinlik();
 
-        // Zaman kontrolü (24 saat kuralı)
         if (etkinlik.getTarih() == null) {
             throw new IllegalStateException("Etkinlik tarihi belirlenmemiş.");
         }
@@ -136,19 +126,15 @@ public class BiletService {
             throw new IllegalStateException("Etkinliğe 24 saatten az süre kaldığı için iptal yapılamaz.");
         }
 
-        // Kapasiteyi geri iade et (Null safe)
         int güncelSatilan = (etkinlik.getSatilan() == null) ? 0 : etkinlik.getSatilan();
         etkinlik.setSatilan(Math.max(0, güncelSatilan - 1));
 
-        // Bilet durumunu güncelle
         bilet.setDurum(BiletDurum.CANCELLED);
         bilet.setCancelledAt(LocalDateTime.now());
 
-        // Değişiklikleri kaydet
         biletRepository.save(bilet);
         etkinlikRepository.save(etkinlik);
 
-        // Güncel kalan koltuk sayısını hesapla
         int yeniKalanKoltuk = etkinlik.getKapasite() - etkinlik.getSatilan();
 
         return new BiletIptalResponse(
@@ -160,8 +146,6 @@ public class BiletService {
     }
     @Transactional(readOnly = true)
     public List<BiletResponse> tumBiletler() {
-        // Admin yetki kontrolü genellikle Controller seviyesinde @PreAuthorize ile yapılır,
-        // ancak servis katmanında tüm listeyi dönen bu metod admin paneli için şarttır.
         return biletRepository.findAll()
                 .stream()
                 .map(this::toResponse)

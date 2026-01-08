@@ -17,7 +17,7 @@ public class Kullanici {
     private String email;
 
     @Column(nullable = false, length = 255)
-    private String sifre; // BCrypt
+    private String sifre;
 
     @Column(nullable = false, length = 120)
     private String ad;

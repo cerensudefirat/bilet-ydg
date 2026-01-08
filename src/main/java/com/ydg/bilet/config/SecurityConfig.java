@@ -16,7 +16,6 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-        // Browser basic-auth popup yerine düzgün 401/403 akışı için
         BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
         entryPoint.setRealmName("YDG Bilet");
 
@@ -26,20 +25,13 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // 1) Statik & auth endpoints
                         .requestMatchers("/", "/index.html", "/ui/**", "/auth/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // 2) Public GET
                         .requestMatchers(HttpMethod.GET, "/api/etkinlik/**", "/api/mekan/**").permitAll()
-
-                        // 3) USER -> Admin isteği (Senaryo2'nin kırıldığı yer burası)
-                        // Kullanıcı admin olmak için istek atabilsin:
                         .requestMatchers(HttpMethod.POST, "/api/admin-requests").authenticated()
-                        // (opsiyonel) kullanıcı kendi isteğini görüyorsa:
                         .requestMatchers(HttpMethod.GET, "/api/admin-requests/**").authenticated()
 
-                        // 4) ADMIN işlemleri
                         .requestMatchers(HttpMethod.GET, "/api/admin-requests/pending/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin-requests/*/approve").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/admin-requests/*/reject").hasRole("ADMIN")
@@ -48,7 +40,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/etkinlik/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // 5) Diğer her şey login ister
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
                         .anyRequest().authenticated()

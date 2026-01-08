@@ -17,7 +17,7 @@ public class Mekan {
     private String ad;
 
     @Column(nullable = false, length = 255)
-    private String adres; // ✅ EKLE
+    private String adres;
 
     @Column(nullable = false, length = 80)
     private String sehir;

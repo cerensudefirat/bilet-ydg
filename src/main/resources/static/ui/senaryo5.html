@@ -136,13 +136,12 @@
 
         addLog(`İade sonrası sunucu kalan koltuk: ${sonKoltuk}`);
 
-        // 5) Doğrulama
         if (sonKoltuk === ilkKoltuk) {
-          addLog("✅ DOĞRULAMA: Kapasite iade edildi.");
+          addLog("DOĞRULAMA: Kapasite iade edildi.");
           badge.className = "badge pass";
           badge.innerText = "RESULT: PASS";
         } else {
-          addLog(`❌ HATA: Beklenen ${ilkKoltuk}, Gelen ${sonKoltuk}`);
+          addLog(`HATA: Beklenen ${ilkKoltuk}, Gelen ${sonKoltuk}`);
           throw new Error("Kapasite uyuşmazlığı.");
         }
 

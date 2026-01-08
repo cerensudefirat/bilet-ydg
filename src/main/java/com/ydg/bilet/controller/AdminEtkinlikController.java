@@ -5,7 +5,6 @@ import com.ydg.bilet.dto.etkinlik.EtkinlikIptalResponse;
 import com.ydg.bilet.dto.etkinlik.EtkinlikResponse;
 import com.ydg.bilet.dto.etkinlik.EtkinlikUpdateRequest;
 import com.ydg.bilet.service.EtkinlikService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

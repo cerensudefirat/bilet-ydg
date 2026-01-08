@@ -1,6 +1,5 @@
 package com.ydg.bilet.controller;
 
-import com.ydg.bilet.dto.LoginRequest;
 import com.ydg.bilet.dto.RegisterRequest;
 import com.ydg.bilet.service.AuthService;
 import lombok.RequiredArgsConstructor;

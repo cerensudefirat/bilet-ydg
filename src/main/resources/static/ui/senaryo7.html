@@ -70,9 +70,8 @@
             const tumBiletler = await adminBiletRes.json();
             addLog(`Admin Panelinde Toplam Bilet: ${tumBiletler.length}`);
 
-            // Stok denetimi: Başlangıçtan 2 eksik olmalı
             if (Number(alData.kalanKoltuk) === (baslangicKalan - 2)) {
-                addLog("✅ DOĞRULAMA: Admin panelinde koltuk sayısı ve bilet listesi senkronize.");
+                addLog("DOĞRULAMA: Admin panelinde koltuk sayısı ve bilet listesi senkronize.");
                 badge.className = "badge pass";
                 badge.innerText = "RESULT: PASS";
             } else {

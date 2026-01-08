@@ -21,7 +21,6 @@ public class BiletController {
         this.biletService = biletService;
     }
 
-    // POST /api/bilet
     @PostMapping
     public ResponseEntity<BiletSatinAlResponse> satinAl(
             @RequestBody BiletSatinAlRequest request
@@ -30,7 +29,6 @@ public class BiletController {
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 
-    // GET /api/bilet/me
     @GetMapping("/me")
     public List<BiletResponse> benimBiletlerim() {
         return biletService.benimBiletlerim();
@@ -41,7 +39,6 @@ public class BiletController {
         return ResponseEntity.ok(biletService.iptalEt(biletId));
     }
     @GetMapping("/admin/all")
-// @PreAuthorize("hasRole('ADMIN')") // Eğer SecurityConfig'de metod seviyesinde yetki kullanıyorsan ekle
     public List<BiletResponse> tumBiletler() {
         return biletService.tumBiletler();
     }

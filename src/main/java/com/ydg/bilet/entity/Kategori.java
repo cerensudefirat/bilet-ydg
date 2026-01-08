@@ -16,8 +16,8 @@ public class Kategori {
     private Long id;
 
     @Column(nullable = false, length = 60)
-    private String ad; // VIP, GENEL, OGRENCI
+    private String ad;
 
     @Column(nullable = false, precision = 10, scale = 2)
-    private BigDecimal carpan; // 1.50 vs
+    private BigDecimal carpan;
 }

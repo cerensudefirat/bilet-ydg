@@ -19,7 +19,7 @@ public class EtkinlikResponse {
     private BigDecimal temelFiyat;
     private Integer satilan;
     private String durum;
-    private Integer kapasite;   // ✅ EKLENDİ
+    private Integer kapasite;
 
     private Long mekanId;
     private String mekanAd;

@@ -28,8 +28,6 @@ public class EtkinlikService {
         this.mekanRepository = mekanRepository;
     }
 
-    // ---------- PUBLIC ----------
-
     @Transactional(readOnly = true)
     public List<EtkinlikResponse> publicListele() {
         return etkinlikRepository
@@ -45,14 +43,11 @@ public class EtkinlikService {
                 .orElseThrow(() -> new NotFoundException("Etkinlik bulunamadı: " + id));
 
         if (e.getDurum() != EtkinlikDurum.ACTIVE) {
-            // public taraf iptal edilmiş etkinliği "yokmuş" gibi dönsün
             throw new NotFoundException("Etkinlik bulunamadı: " + id);
         }
 
         return toResponse(e);
     }
-
-    // ---------- ADMIN ----------
 
     public EtkinlikResponse olustur(EtkinlikCreateRequest req) {
         if (req.getMekanId() == null) {
@@ -80,10 +75,8 @@ public class EtkinlikService {
         Etkinlik e = etkinlikRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Etkinlik bulunamadı: " + id));
 
-        // Hard delete yok: iptal (CANCELLED)
         e.setDurum(EtkinlikDurum.CANCELLED);
 
-        // Şimdilik: iptal edilen bilet sayısı = satılan (Gün2’de gerçek bilet kaydına bağlarız)
         int iptalEdilen = (e.getSatilan() == null ? 0 : e.getSatilan());
 
         return new EtkinlikIptalResponse(
@@ -92,9 +85,6 @@ public class EtkinlikService {
                 iptalEdilen
         );
     }
-
-    // ---------- mapper ----------
-
     private EtkinlikResponse toResponse(Etkinlik e) {
         Mekan m = e.getMekan(); // ManyToOne LAZY ama transaction içinde olduğumuz için sorun yok
 
@@ -111,7 +101,7 @@ public class EtkinlikService {
                 e.getTemelFiyat(),
                 e.getSatilan(),
                 e.getDurum().name(),
-                e.getKapasite(),   // ✅ EKLENDİ
+                e.getKapasite(),
                 mekanId,
                 mekanAd,
                 mekanKapasite
@@ -122,7 +112,6 @@ public class EtkinlikService {
         Etkinlik e = etkinlikRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Etkinlik bulunamadı: " + id));
 
-        // CANCELLED ise burada kesin kes
         if (EtkinlikDurum.CANCELLED.equals(e.getDurum())) {
             throw new IllegalStateException("İptal edilmiş etkinlik güncellenemez: " + id);
         }

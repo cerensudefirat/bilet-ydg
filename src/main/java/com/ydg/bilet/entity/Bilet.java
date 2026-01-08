@@ -23,12 +23,10 @@ public class Bilet {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Bir etkinliğe ait bilet
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "etkinlik_id", nullable = false)
     private Etkinlik etkinlik;
 
-    // Bileti alan kullanıcı
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "kullanici_id", nullable = false)
     private Kullanici kullanici;

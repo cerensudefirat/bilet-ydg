@@ -25,7 +25,6 @@ function authHeader(user, pass) {
   return { "Authorization": `Basic ${token}` };
 }
 
-// fetch sonsuza kadar beklemesin diye timeout ekledik + daha net hata mesajı
 async function http(method, path, { auth = null, body = null, timeoutMs = 8000 } = {}) {
   const headers = {};
   if (body != null) headers["Content-Type"] = "application/json";
@@ -43,7 +42,6 @@ async function http(method, path, { auth = null, body = null, timeoutMs = 8000 }
       signal: controller.signal
     });
   } catch (e) {
-    // Network / timeout / DNS / connection refused vb.
     const name = e?.name ? `${e.name}: ` : "";
     throw new Error(`FETCH FAILED ${method} ${path} -> ${name}${e?.message ?? e}`);
   } finally {
@@ -63,7 +61,6 @@ async function http(method, path, { auth = null, body = null, timeoutMs = 8000 }
 function isoPlusDays(days) {
   const d = new Date();
   d.setDate(d.getDate() + days);
-  // LocalDateTime beklediği için timezone Z eklemiyoruz.
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
@@ -78,7 +75,6 @@ async function scenario1_adminCreateEvent() {
 
   const adminAuth = authHeader(adminUser, adminPass);
 
-  // 0) Basic Auth çalışıyor mu? Bunu /auth/login ile değil, gerçek korumalı endpoint ile test ediyoruz.
   logLine("0) GET /api/mekan (Basic Auth kontrol + ilk mekanId seçilecek)");
   const mekanlar = await http("GET", "/api/mekan", { auth: adminAuth, timeoutMs: 60000 });
 
@@ -91,7 +87,6 @@ async function scenario1_adminCreateEvent() {
 
   logLine(`   -> mekanId = ${mekanId}`);
 
-  // 1) etkinlik create
   const unique = Date.now();
   const req = {
     baslik: `SC1 YDG Event ${unique}`,
@@ -112,7 +107,6 @@ async function scenario1_adminCreateEvent() {
 
   logLine(`   -> createdId = ${createdId}`);
 
-  // 2) public list doğrulama
   logLine("2) GET /api/etkinlik (public listede arama)");
   const list = await http("GET", "/api/etkinlik", { timeoutMs: 10000 });
 

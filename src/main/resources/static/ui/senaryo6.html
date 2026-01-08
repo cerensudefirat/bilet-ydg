@@ -65,7 +65,6 @@
 
             addLog(`Profilde bulunan bilet sayısı: ${biletler.length}`);
 
-            // Doğrulama: Alınan bilet listede var mı?
             const biletOradaMi = biletler.some(b => b.etkinlikBaslik === hedefBaslik);
 
             if (biletOradaMi) {

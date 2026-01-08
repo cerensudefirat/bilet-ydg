@@ -15,7 +15,6 @@ public class AdminRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // admin olmak isteyen kullanıcı
     @ManyToOne(optional = false)
     @JoinColumn(name = "kullanici_id", nullable = false)
     private Kullanici kullanici;

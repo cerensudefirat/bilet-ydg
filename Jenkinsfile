@@ -8,6 +8,7 @@ pipeline {
   }
 
   environment {
+    // Docker Compose proje adını sabitliyoruz
     COMPOSE_PROJECT_NAME = "bilet-ydg"
     COMPOSE_CMD = "docker compose"
   }
@@ -52,14 +53,21 @@ pipeline {
     stage('Docker Ortamının Başlatılması') {
       steps {
         sh '''
-          # Projeye ait tüm kalıntıları (varsa) temizle
-          docker compose -p "$COMPOSE_PROJECT_NAME" down -v --remove-orphans || true
+          set +e
+          echo "=== Eski Kalıntılar Temizleniyor ==="
+          # Proje ismiyle eşleşen her şeyi durdur ve sil
+          $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" down -v --remove-orphans || true
 
-          # Eğer hala çakışma riski varsa, ismi direkt kontrol edip silebilirsin
-          docker rm -f bilet-e2e bilet-app bilet-db bilet-selenium || true
+          # İsim çakışması riskine karşı manuel temizlik (garantiye almak için)
+          docker rm -f bilet-app bilet-db bilet-selenium bilet-e2e || true
 
-          # Servisleri başlat
-          docker compose -p "$COMPOSE_PROJECT_NAME" up -d --build
+          set -e
+          echo "=== Servisler Başlatılıyor ==="
+          # Uygulamayı 'test' profiliyle başlatmak test verileri için kritiktir
+          $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" up -d --build
+
+          echo "=== Konteyner Durumları ==="
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
         '''
       }
     }
@@ -68,17 +76,8 @@ pipeline {
       steps {
         sh '''
           set -e
-          echo "=== Jenkins workspace ==="
-          pwd
-          ls -la
-
-          echo "=== E2E: workspace mount kontrol ==="
-          docker compose -p "$COMPOSE_PROJECT_NAME" run --rm \
-            -v "$PWD:/workspace" -w /workspace \
-            e2e bash -lc "pwd && ls -la && test -f pom.xml"
-
-          echo "=== E2E testleri (mvn) ==="
-          docker compose -p "$COMPOSE_PROJECT_NAME" run --rm \
+          echo "=== E2E Testleri Başlıyor ==="
+          $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" run --rm \
             -v "$PWD:/workspace" -w /workspace \
             -e E2E_BASE_URL=http://app:8080 \
             -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
@@ -97,20 +96,29 @@ pipeline {
     failure {
       sh '''
         set +e
-        echo "=== Docker ps (failure) ==="
-        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
+        echo "********************************************************"
+        echo "!!! HATA TESPİT EDİLDİ: LOGLAR DÖKÜLÜYOR !!!"
+        echo "********************************************************"
 
-        echo "=== COMPOSE LOGS (failure) ==="
-        docker compose -p "$COMPOSE_PROJECT_NAME" logs --tail=200 || true
+        echo "=== 1) Konteyner Listesi (Neden çöktü?) ==="
+        docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.ExitCode}}"
+
+        echo "=== 2) Uygulama Logları (Spring Boot Hata Mesajı) ==="
+        # Docker Compose proje ismiyle konteyner loguna ulaşır
+        docker logs ${COMPOSE_PROJECT_NAME}-app-1 || docker logs bilet-app
+
+        echo "=== 3) Veritabanı Logları ==="
+        docker logs ${COMPOSE_PROJECT_NAME}-db-1 || docker logs bilet-db
+
+        echo "********************************************************"
       '''
     }
 
+    /* Debug aşamasında olduğumuz için 'always' içindeki silme komutunu
+       kapalı tutmaya devam ediyoruz. Bu sayede hata sonrası terminalden
+       'docker logs' bakabilirsin. */
     always {
-      sh '''
-        set +e
-        echo "=== Ortam Temizliği ==="
-        docker compose -p "$COMPOSE_PROJECT_NAME" down -v --remove-orphans || true
-      '''
+      echo "İşlem tamamlandı. (Otomatik temizlik devre dışı bırakıldı)"
     }
   }
 }

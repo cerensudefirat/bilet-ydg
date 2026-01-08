@@ -45,7 +45,7 @@ class AdminEtkinlikControllerTest {
     @Test
     @WithMockUser(roles = "ADMIN")
     void guncelle_200_ok() throws Exception {
-        EtkinlikResponse resp = new EtkinlikResponse(1L, "Yeni Baslik", null, null, null, null, null, null, null, null, null);
+        EtkinlikResponse resp = new EtkinlikResponse(1L, "Yeni Baslik", null, null,null, null, null, null, null, null, null, null);
 
         when(etkinlikService.guncelle(eq(1L), any()))
                 .thenReturn(resp);

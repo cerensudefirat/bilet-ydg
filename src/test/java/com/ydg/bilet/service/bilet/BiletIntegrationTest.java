@@ -62,6 +62,7 @@ class BiletIntegrationTest {
 
         mekan = new Mekan();
         mekan.setAd("Kongre Merkezi");
+        mekan.setAdres("Adres 1"); // ✅ EKLE
         mekan.setSehir("Malatya");
         mekan.setKapasite(1200);
         mekan = mekanRepository.save(mekan);

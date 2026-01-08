@@ -17,27 +17,23 @@ public class AdminRequestController {
 
     private final AdminRequestService adminRequestService;
 
-    // USER -> "Admin olmak istiyorum"
     @PostMapping
     public ResponseEntity<AdminRequestResponse> create(Authentication auth) {
         return ResponseEntity.ok(adminRequestService.createRequest(auth));
     }
 
-    // ADMIN -> Bekleyen istekleri listele
     @GetMapping("/pending")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<AdminRequestResponse>> pending() {
         return ResponseEntity.ok(adminRequestService.listPending());
     }
 
-    // ADMIN -> Onayla
     @PostMapping("/{id}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AdminRequestResponse> approve(@PathVariable Long id) {
         return ResponseEntity.ok(adminRequestService.approve(id));
     }
 
-    // ADMIN -> Reddet
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AdminRequestResponse> reject(@PathVariable Long id) {

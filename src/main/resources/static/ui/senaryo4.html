@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>YDG Bilet - Senaryo 4 (Kapasite Kontrol)</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .log-area { background: #1e1e1e; color: #50fa7b; padding: 15px; height: 350px; overflow-y: auto; font-family: 'Courier New', monospace; border-radius: 5px; border: 1px solid #333; white-space: pre-wrap; }
+        .badge { padding: 12px 20px; font-weight: bold; border-radius: 4px; display: inline-block; margin: 15px 0; min-width: 120px; text-align: center; }
+        .pass { background: #28a745; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .fail { background: #dc3545; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .running { background: #ffc107; color: #212529; }
+        .box { border: 1px solid #ddd; padding: 20px; border-radius: 8px; background: white; }
+        button { padding: 10px 25px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+<h2>Senaryo 4: Kapasite Aşımı ve Hata Yönetimi</h2>
+
+<div class="box">
+    <label>Base URL:</label>
+    <input type="text" id="baseUrl" value="http://localhost:8080" style="padding: 8px; width: 250px;">
+    <button id="btnSc4" onclick="runSenaryo4()">Testi Başlat</button>
+</div>
+
+<div id="resultBadge" class="badge">RESULT: -</div>
+<div id="log" class="log-area"></div>
+
+<script>
+    async function runSenaryo4() {
+      const log = document.getElementById('log');
+      const badge = document.getElementById('resultBadge');
+      const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+
+      const addLog = (m) => {
+        const time = new Date().toLocaleTimeString();
+        log.textContent += `[${time}] > ${m}\n`;
+        log.scrollTop = log.scrollHeight;
+      };
+
+      // Basic Auth
+      const auth = 'Basic ' + btoa("admin@ydg.com:admin123");
+
+      log.textContent = "";
+      badge.className = "badge running";
+      badge.innerText = "RESULT: RUNNING";
+
+      try {
+        addLog("1) Etkinlik listesi kontrol ediliyor...");
+        const etkRes = await fetch(`${baseUrl}/api/etkinlik`);
+
+        addLog(`GET /api/etkinlik -> status=${etkRes.status}`);
+        if (!etkRes.ok) {
+          const t = await etkRes.text();
+          throw new Error(`Etkinlik listesine ulaşılamadı. Status=${etkRes.status} Body=${t}`);
+        }
+
+        const etkinlikler = await etkRes.json();
+        if (!Array.isArray(etkinlikler) || etkinlikler.length === 0) {
+          throw new Error("Sistemde test edilecek etkinlik bulunamadı!");
+        }
+
+        const target = etkinlikler[0];
+
+        // Kapasite alanı gerçekten geliyor mu? (kritik)
+        const kapasite = Number(target.kapasite);
+        if (!Number.isFinite(kapasite)) {
+          addLog("HATA: target.kapasite okunamadı (undefined/NaN).");
+          addLog("Gelen hedef etkinlik JSON: " + JSON.stringify(target));
+          throw new Error("Etkinlik kapasite alanı okunamadı. DTO alan adlarını kontrol et (EtkinlikResponse).");
+        }
+
+        addLog(`Hedef Etkinlik: ${target.baslik} (Kapasite: ${kapasite})`);
+        const adet = kapasite + 1;
+
+        addLog(`2) Kapasiteyi zorlayan istek gönderiliyor (Adet: ${adet})...`);
+
+        const res = await fetch(`${baseUrl}/api/bilet`, {
+          method: 'POST',
+          headers: {
+            'Authorization': auth,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            etkinlikId: target.id,
+            adet: adet
+          })
+        });
+
+        addLog(`POST /api/bilet -> status=${res.status} ok=${res.ok}`);
+
+        // Yanıtı her durumda oku ve logla (debug için)
+        const bodyText = await res.text();
+        addLog("Sunucu Yanıtı: " + (bodyText || "(boş)"));
+
+        // BU TESTİN AMACI HATA ALMAKTIR.
+        // Kapasite aşımı doğru çalışıyorsa 409 bekliyoruz.
+        if (res.status === 409) {
+          addLog("BEKLENEN SONUÇ: Sistem kapasite aşımını reddetti (409).");
+          badge.className = "badge pass";
+          badge.innerText = "RESULT: PASS";
+          return;
+        }
+
+        // Eğer 200/201 döndüyse kapasite kontrolü çalışmıyor demektir
+        if (res.ok) {
+          addLog("HATA: Sistem kapasite aşımına izin verdi! (201/200 döndü)");
+          badge.className = "badge fail";
+          badge.innerText = "RESULT: FAIL";
+          return;
+        }
+
+        // res.ok false ama 409 değilse (400/401/403/500 vs) => testin amacı kapasiteydi, bunu FAIL say
+        addLog("HATA: Beklenen 409 kapasite hatası değildi. (Status: " + res.status + ")");
+        badge.className = "badge fail";
+        badge.innerText = "RESULT: FAIL";
+
+      } catch (e) {
+        addLog("TEKNİK HATA: " + e.message);
+        badge.className = "badge fail";
+        badge.innerText = "RESULT: FAIL";
+      }
+    }
+</script>
+</body>
+</html>

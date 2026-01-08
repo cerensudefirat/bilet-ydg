@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>YDG Bilet - Senaryo 3</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; line-height: 1.5; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: #f9f9f9; }
+        .log-area { background: #333; color: #0f0; padding: 10px; height: 300px; overflow-y: auto; font-family: monospace; border-radius: 4px; white-space: pre-wrap; }
+        .badge { display: inline-block; padding: 10px; font-weight: bold; border-radius: 5px; margin-top: 10px; }
+        .pending { background: #ffc107; color: black; }
+        .pass { background: #28a745; color: white; }
+        .fail { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+<h2>Senaryo 3: Bilet Satın Alma Süreci</h2>
+<div class="box">
+    <label>Base URL:</label> <input type="text" id="baseUrl" value="http://localhost:8080"><br><br>
+    <button id="btnSc3" onclick="runSenaryo3()">Bilet Satın Al</button>
+</div>
+
+<div id="resultBadge" class="badge">RESULT: -</div>
+<p id="status">Durum: Bekliyor...</p>
+<div id="log" class="log-area"></div>
+
+<script>
+    const logArea = document.getElementById('log');
+    const badge = document.getElementById('resultBadge');
+
+    function addLog(msg) {
+        logArea.innerHTML += `> ${msg}\n`;
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    async function runSenaryo3() {
+        const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+        const email = `musteri_${Math.floor(Math.random()*999)}@test.com`;
+        const pass = "Sifre123";
+        const authHeader = 'Basic ' + btoa(email + ":" + pass);
+
+        badge.className = "badge pending";
+        badge.innerText = "RESULT: RUNNING";
+        logArea.innerHTML = "";
+
+        try {
+            addLog("1. Müşteri kaydı yapılıyor...");
+            await fetch(`${baseUrl}/auth/register`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email, sifre: pass, ad: "Müşteri", soyad: "Test" })
+            });
+
+            addLog("2. Etkinlikler listeleniyor...");
+            const etkRes = await fetch(`${baseUrl}/api/etkinlik`);
+            const etkinlikler = await etkRes.json();
+            if (!etkinlikler.length) throw new Error("Etkinlik bulunamadı!");
+
+            const id = etkinlikler[0].id;
+            addLog(`Seçilen Etkinlik: ${etkinlikler[0].baslik} (ID: ${id})`);
+
+            addLog("3. Bilet alım isteği gönderiliyor (JSON Body)...");
+            const biletRes = await fetch(`${baseUrl}/api/bilet`, {
+                method: 'POST',
+                headers: { 'Authorization': authHeader, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ etkinlikId: id, adet: 1 })
+            });
+
+            if (biletRes.ok) {
+                addLog("BAŞARILI: Bilet satın alındı.");
+                badge.className = "badge pass";
+                badge.innerText = "RESULT: PASS";
+            } else {
+                const msg = await biletRes.text();
+                throw new Error(msg);
+            }
+        } catch (e) {
+            addLog("HATA: " + e.message);
+            badge.className = "badge fail";
+            badge.innerText = "RESULT: FAIL";
+        }
+    }
+</script>
+</body>
+</html>

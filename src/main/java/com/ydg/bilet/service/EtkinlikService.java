@@ -111,6 +111,7 @@ public class EtkinlikService {
                 e.getTemelFiyat(),
                 e.getSatilan(),
                 e.getDurum().name(),
+                e.getKapasite(),   // ✅ EKLENDİ
                 mekanId,
                 mekanAd,
                 mekanKapasite

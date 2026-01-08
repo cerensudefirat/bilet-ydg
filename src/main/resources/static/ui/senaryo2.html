@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>YDG Bilet - Senaryo 2 (Admin İsteği)</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: white; }
+        .log-area { background: #2d2d2d; color: #a6e22e; padding: 15px; height: 350px; overflow-y: auto; font-family: monospace; border-radius: 5px; white-space: pre-wrap; }
+        .badge { padding: 10px 20px; font-weight: bold; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        .pass { background: #4caf50; color: white; }
+        .fail { background: #f44336; color: white; }
+        input { width: 360px; }
+    </style>
+</head>
+<body>
+
+<h2>Senaryo 2: Kullanıcı Admin İsteği → Admin Approve</h2>
+
+<div class="box">
+    Base URL:
+    <input type="text" id="baseUrl" value="http://localhost:8080">
+    <br><br>
+    <button id="btnSc2" onclick="runSenaryo2()">Testi Başlat</button>
+</div>
+
+<div id="resultBadge" class="badge">RESULT: -</div>
+<div id="log" class="log-area"></div>
+
+<script>
+    function add(logEl, msg) {
+      logEl.innerHTML += `> ${msg}\n`;
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function basic(email, pass) {
+      return "Basic " + btoa(`${email}:${pass}`);
+    }
+
+    async function readText(res) {
+      try { return await res.text(); } catch(e) { return ""; }
+    }
+
+    async function readJson(res) {
+      try { return await res.json(); } catch(e) { return null; }
+    }
+
+    function pickId(obj) {
+      return obj?.id ?? obj?.requestId ?? obj?.adminRequestId ?? obj?.adminIstekId ?? null;
+    }
+
+    function containsEmail(obj, email) {
+      if (!obj) return false;
+      const s = JSON.stringify(obj).toLowerCase();
+      return s.includes(email.toLowerCase());
+    }
+
+    async function fetchJsonTry(url, optionsList) {
+      // seçenekleri sırayla dene, ilk başarılı olanı döndür
+      let last = null;
+      for (const opt of optionsList) {
+        const res = await fetch(url, opt);
+        const bodyJson = await readJson(res);
+        const bodyText = bodyJson == null ? await readText(res) : null;
+        last = { res, bodyJson, bodyText, opt };
+        if (res.ok) return last;
+      }
+      return last; // en son denemeyi döndür (hata logu için)
+    }
+
+    async function runSenaryo2() {
+      const log = document.getElementById('log');
+      const badge = document.getElementById('resultBadge');
+      const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+
+      log.innerHTML = "";
+      badge.className = "badge";
+      badge.innerText = "RESULT: RUNNING";
+
+      const email = `adminreq_${Date.now()}@test.com`;
+      const pass = "Sifre123";
+      const userAuth = basic(email, pass);
+
+      const adminEmail = "admin@ydg.com";
+      const adminPass = "admin123";
+      const adminAuth = basic(adminEmail, adminPass);
+
+      try {
+        // 1) Register
+        add(log, `1) Kullanıcı kaydı: ${email}`);
+        const regRes = await fetch(`${baseUrl}/auth/register`, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({ email, sifre: pass, ad:"User", soyad:"Two" })
+        });
+        add(log, `REGISTER status=${regRes.status}`);
+        if (!regRes.ok) throw new Error("Register failed: " + await readText(regRes));
+
+        // 2) User admin request (body gereksinimine tolerans)
+        add(log, "2) Kullanıcı admin rolü istiyor (POST /api/admin-requests) ...");
+
+        const reqTry = await fetchJsonTry(`${baseUrl}/api/admin-requests`, [
+          {
+            method: "POST",
+            headers: { "Authorization": userAuth, "Content-Type":"application/json" },
+            body: JSON.stringify({}) // çoğu backend için yeterli
+          },
+          {
+            method: "POST",
+            headers: { "Authorization": userAuth, "Content-Type":"application/json" },
+            body: JSON.stringify({ aciklama: "Admin olmak istiyorum" }) // validasyon isterse diye
+          }
+        ]);
+
+        add(log, `ADMIN REQUEST status=${reqTry.res.status}`);
+        add(log, `ADMIN REQUEST body=${JSON.stringify(reqTry.bodyJson) || reqTry.bodyText || ""}`);
+        if (!reqTry.res.ok) throw new Error("Admin request POST failed: " + (reqTry.bodyText || JSON.stringify(reqTry.bodyJson)));
+
+        // 3) Admin pending list
+        add(log, "3) Admin pending list çekiyor (GET /api/admin-requests/pending) ...");
+        const pendingRes = await fetch(`${baseUrl}/api/admin-requests/pending`, {
+          method: "GET",
+          headers: { "Authorization": adminAuth }
+        });
+        add(log, `PENDING status=${pendingRes.status}`);
+        const pendingBody = await readJson(pendingRes);
+        add(log, `PENDING body=${JSON.stringify(pendingBody)}`);
+
+        if (!pendingRes.ok) throw new Error("Pending list failed: " + await readText(pendingRes));
+        if (!Array.isArray(pendingBody) || pendingBody.length === 0) {
+          throw new Error("Pending list boş geldi (istek kaydedilmemiş olabilir).");
+        }
+
+        // ✅ Kritik düzeltme: bizim email’e ait pending isteği bul
+        const mine = pendingBody.find(x => containsEmail(x, email)) || null;
+        if (!mine) {
+          // email alanı dönmüyorsa: fallback -> en son eklenen olabilir diye sondan dene
+          add(log, "Uyarı: Pending list içinde email eşleşmesi yok. Fallback: listenin son elemanı kullanılacak.");
+        }
+        const chosen = mine || pendingBody[pendingBody.length - 1];
+
+        const requestId = pickId(chosen);
+        add(log, `Seçilen pending item=${JSON.stringify(chosen)}`);
+        if (!requestId) throw new Error("Pending item içinde id bulunamadı (id/requestId/adminRequestId/adminIstekId yok).");
+
+        add(log, `requestId=${requestId}`);
+
+        // 4) Approve (POST olmazsa PUT dene)
+        add(log, "4) Admin approve ediyor...");
+        const approveUrl = `${baseUrl}/api/admin-requests/${requestId}/approve`;
+
+        const apprTry = await fetchJsonTry(approveUrl, [
+          { method: "POST", headers: { "Authorization": adminAuth } },
+          { method: "PUT",  headers: { "Authorization": adminAuth } },
+        ]);
+
+        add(log, `APPROVE status=${apprTry.res.status}`);
+        add(log, `APPROVE body=${JSON.stringify(apprTry.bodyJson) || apprTry.bodyText || ""}`);
+        if (!apprTry.res.ok) throw new Error("Approve failed: " + (apprTry.bodyText || JSON.stringify(apprTry.bodyJson)));
+
+        // 5) Pending tekrar kontrol (opsiyonel)
+        add(log, "5) Pending tekrar kontrol...");
+        const pendingRes2 = await fetch(`${baseUrl}/api/admin-requests/pending`, {
+          method: "GET",
+          headers: { "Authorization": adminAuth }
+        });
+        const pendingBody2 = await readJson(pendingRes2);
+        add(log, `PENDING2 status=${pendingRes2.status}`);
+        add(log, `PENDING2 body=${JSON.stringify(pendingBody2)}`);
+
+        add(log, "✅ Senaryo 2 tamamlandı.");
+        badge.className = "badge pass";
+        badge.innerText = "RESULT: PASS";
+
+      } catch (e) {
+        add(log, "FAIL: " + e.message);
+        badge.className = "badge fail";
+        badge.innerText = "RESULT: FAIL";
+      }
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8" />
+    <title>YDG Bilet - Senaryo 5 (İptal ve İade)</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f7f6; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: white; }
+        .log-area { background: #2d2d2d; color: #a6e22e; padding: 15px; height: 350px; overflow-y: auto; font-family: monospace; border-radius: 5px; white-space: pre-wrap; }
+        .badge { padding: 10px 20px; font-weight: bold; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        .pass { background: #4caf50; color: white; }
+        .fail { background: #f44336; color: white; }
+    </style>
+</head>
+<body>
+<h2>Senaryo 5: Bilet İptali ve Kapasite İadesi</h2>
+
+<div class="box">
+    Base URL:
+    <input type="text" id="baseUrl" value="http://localhost:8080" style="width: 320px;">
+    <br><br>
+    <button id="btnSc5" onclick="runSenaryo5()">Testi Başlat</button>
+</div>
+
+<div id="resultBadge" class="badge">RESULT: -</div>
+<div id="log" class="log-area"></div>
+
+<script>
+    async function runSenaryo5() {
+      const log = document.getElementById('log');
+      const badge = document.getElementById('resultBadge');
+      const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+
+      const addLog = (m) => {
+        log.innerHTML += `> ${m}\n`;
+        log.scrollTop = log.scrollHeight;
+      };
+
+      const email = `iptal_test_${Date.now()}@test.com`;
+      const pass = "Sifre123";
+      const auth = 'Basic ' + btoa(`${email}:${pass}`);
+
+      log.innerHTML = "";
+      badge.className = "badge";
+      badge.innerText = "RESULT: RUNNING";
+
+      try {
+        // 1) Register
+        addLog("1. Kullanıcı kaydı yapılıyor...");
+        const regRes = await fetch(`${baseUrl}/auth/register`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, sifre: pass, ad: "Iptal", soyad: "Test" })
+        });
+        addLog("REGISTER STATUS: " + regRes.status);
+        if (!regRes.ok) {
+          const t = await regRes.text().catch(() => "");
+          throw new Error("Register başarısız. Status=" + regRes.status + " Body=" + t);
+        }
+
+        // 2) İlk kapasite ölç
+        addLog("2. Başlangıç kapasitesi ölçülüyor...");
+        const etkRes = await fetch(`${baseUrl}/api/etkinlik`);
+        addLog("ETKINLIK LIST STATUS: " + etkRes.status);
+        if (!etkRes.ok) {
+          const t = await etkRes.text().catch(() => "");
+          throw new Error("Etkinlik listesi alınamadı. Status=" + etkRes.status + " Body=" + t);
+        }
+
+        const etkinlikler = await etkRes.json();
+        if (!Array.isArray(etkinlikler) || etkinlikler.length === 0) {
+          throw new Error("Etkinlik listesi boş geldi (seed yok).");
+        }
+
+        const hedef = etkinlikler[0];
+
+        const ilkKoltuk = Number(hedef.kapasite) - Number(hedef.satilan || 0);
+        addLog(`Hedef etkinlik: id=${hedef.id} baslik=${hedef.baslik || "-"} kalan=${ilkKoltuk}`);
+
+        // 3) Bilet satın al
+        addLog("3. Bilet satın alınıyor...");
+        const alRes = await fetch(`${baseUrl}/api/bilet`, {
+          method: 'POST',
+          headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ etkinlikId: hedef.id, adet: 1 })
+        });
+
+        addLog("SATIN AL STATUS: " + alRes.status);
+
+        // json parse fail olursa yakalayalım
+        let alData;
+        try {
+          alData = await alRes.json();
+        } catch (e) {
+          const t = await alRes.text().catch(() => "");
+          throw new Error("Satın alma JSON parse edilemedi. Status=" + alRes.status + " Body=" + t);
+        }
+
+        addLog("SATIN AL BODY: " + JSON.stringify(alData));
+
+        if (!alRes.ok) {
+          throw new Error("Satın alma başarısız. Status=" + alRes.status);
+        }
+
+        // ✅ FIX: backend alan adı biletIdList
+        const biletId =
+          (alData.biletIdList && alData.biletIdList[0]) ? alData.biletIdList[0] : null;
+
+        if (!biletId) {
+          throw new Error("Satın alma response içinde biletIdList yok / boş.");
+        }
+
+        addLog("Satın alınan biletId: " + biletId);
+
+        // 4) İptal et
+        addLog("4. Bilet iptal ediliyor...");
+        const iptalRes = await fetch(`${baseUrl}/api/bilet/${biletId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': auth }
+        });
+
+        addLog("IPTAL STATUS: " + iptalRes.status);
+
+        let iptalData;
+        try {
+          iptalData = await iptalRes.json();
+        } catch (e) {
+          const t = await iptalRes.text().catch(() => "");
+          throw new Error("İptal JSON parse edilemedi. Status=" + iptalRes.status + " Body=" + t);
+        }
+
+        addLog("IPTAL BODY: " + JSON.stringify(iptalData));
+
+        if (!iptalRes.ok) {
+          throw new Error("İptal başarısız. Status=" + iptalRes.status);
+        }
+
+        const sonKoltuk = Number(iptalData.kalanKoltuk);
+        if (Number.isNaN(sonKoltuk)) {
+          throw new Error("İptal response içinde kalanKoltuk yok ya da sayı değil.");
+        }
+
+        addLog(`İade sonrası sunucu kalan koltuk: ${sonKoltuk}`);
+
+        // 5) Doğrulama
+        if (sonKoltuk === ilkKoltuk) {
+          addLog("✅ DOĞRULAMA: Kapasite iade edildi.");
+          badge.className = "badge pass";
+          badge.innerText = "RESULT: PASS";
+        } else {
+          addLog(`❌ HATA: Beklenen ${ilkKoltuk}, Gelen ${sonKoltuk}`);
+          throw new Error("Kapasite uyuşmazlığı.");
+        }
+
+      } catch (e) {
+        addLog("FAIL: " + e.message);
+        badge.className = "badge fail";
+        badge.innerText = "RESULT: FAIL";
+      }
+    }
+</script>
+</body>
+</html>

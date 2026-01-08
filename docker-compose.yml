@@ -6,16 +6,11 @@ services:
       POSTGRES_DB: biletdb
       POSTGRES_USER: bilet
       POSTGRES_PASSWORD: bilet
-    ports:
-      - "5432:5432"
-    volumes:
-      - bilet_pg:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bilet -d biletdb"]
       interval: 5s
       timeout: 3s
       retries: 20
-      start_period: 10s
 
   app:
     build: .
@@ -28,9 +23,6 @@ services:
       SPRING_DATASOURCE_USERNAME: bilet
       SPRING_DATASOURCE_PASSWORD: bilet
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      # Actuator health zaten public ve çalışıyor
-      MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED: "true"
-      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info"
     ports:
       - "8080:8080"
     healthcheck:
@@ -39,7 +31,35 @@ services:
       timeout: 3s
       retries: 15
       start_period: 20s
-    restart: unless-stopped
+
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: bilet-selenium
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+      - "7900:7900" # İsterseniz VNC ile izlemek için
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4444/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  e2e:
+    image: maven:3.9-eclipse-temurin-17
+    container_name: bilet-e2e
+    depends_on:
+      app:
+        condition: service_healthy
+      selenium:
+        condition: service_healthy
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+      - m2_cache:/root/.m2
+    environment:
+      E2E_BASE_URL: http://app:8080
+      SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
 
 volumes:
-  bilet_pg:
+  m2_cache:

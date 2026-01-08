@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 public class MekanDto {
     private Long id;
     private String ad;
+    private String adres;
     private String sehir;
     private Integer kapasite;
 }

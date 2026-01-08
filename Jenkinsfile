@@ -6,33 +6,23 @@ pipeline {
     skipDefaultCheckout(true)
   }
 
-  environment {
-    // docker compose v2 varsa bunu kullanacağız, yoksa docker-compose'a düşeceğiz
-    COMPOSE = 'docker compose'
-  }
-
   stages {
-
-    stage('Clean Workspace') {
-      steps {
-        deleteDir()
-      }
+    stage('Çalışma Alanı Temizliği') {
+      steps { deleteDir() }
     }
 
-    stage('Checkout') {
-      steps {
-        checkout scm
-      }
+    stage('Kodların Çekilmesi') {
+      steps { checkout scm }
     }
 
-    stage('Build') {
+    stage('Paketleme (Build)') {
       steps {
         sh 'chmod +x mvnw || true'
         sh './mvnw -B -DskipTests clean package'
       }
     }
 
-    stage('Unit Tests') {
+    stage('Birim Testler (Unit Tests)') {
       steps {
         sh './mvnw -B test'
       }
@@ -43,9 +33,37 @@ pipeline {
       }
     }
 
-    stage('Integration Tests') {
+    stage('Docker Ortamının Başlatılması') {
       steps {
-        sh './mvnw -B failsafe:integration-test failsafe:verify'
+        sh '''
+          set -e
+          # Docker Compose komutunu belirle
+          COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
+          # Eski kalıntıları temizle ve yeni yapıyı ayağa kaldır
+          $COMPOSE_CMD down -v --remove-orphans || true
+          $COMPOSE_CMD up -d --build
+
+          echo "Servislerin (App, DB, Selenium) hazır olması bekleniyor..."
+          sleep 20
+        '''
+      }
+    }
+
+    stage('Uçtan Uca Testler (Selenium E2E)') {
+      steps {
+        sh '''
+          set -e
+          COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
+          # Tüm IT (Integration Test) sınıflarını (Senaryo 1-7) Docker ağında koşturur
+          $COMPOSE_CMD run --rm \
+            -e E2E_BASE_URL=http://app:8080 \
+            -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
+            e2e bash -lc "./mvnw -B failsafe:integration-test failsafe:verify \
+            -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
+            -De2e.baseUrl=http://app:8080"
+        '''
       }
       post {
         always {
@@ -53,89 +71,21 @@ pipeline {
         }
       }
     }
-
-   stage('Docker Up (Compose)') {
-     steps {
-       sh '''
-         set -e
-
-         if docker compose version >/dev/null 2>&1; then
-           COMPOSE="docker compose"
-         else
-           COMPOSE="docker-compose"
-         fi
-         echo "Using compose command: $COMPOSE"
-
-         echo "Stopping any previous compose stack..."
-         $COMPOSE down -v --remove-orphans || true
-
-         echo "Starting compose..."
-         $COMPOSE up -d --build
-
-         sleep 2
-
-         echo "Waiting for Docker HEALTHY (or RUNNING if no healthcheck)..."
-         for i in $(seq 1 60); do
-           health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' bilet-app 2>/dev/null || true)"
-           state="$(docker inspect -f '{{.State.Status}}' bilet-app 2>/dev/null || true)"
-
-           health="${health:-missing}"
-           state="${state:-missing}"
-
-           echo "bilet-app state: $state | health: $health"
-
-           if [ "$health" = "healthy" ]; then
-             echo "App is healthy ✅"
-             $COMPOSE ps || true
-             exit 0
-           fi
-
-           if [ "$health" = "no-healthcheck" ] && [ "$state" = "running" ]; then
-             echo "App is running (no healthcheck) ✅"
-             $COMPOSE ps || true
-             exit 0
-           fi
-
-           if [ "$state" = "exited" ] || [ "$state" = "dead" ]; then
-             echo "App container is not running ❌"
-             break
-           fi
-
-           sleep 2
-         done
-
-         echo "App did not become ready ❌"
-         $COMPOSE ps || true
-         $COMPOSE logs --tail=200 || true
-         exit 1
-       '''
-     }
-   }
-
   }
 
   post {
     failure {
       sh '''
-        if docker compose version >/dev/null 2>&1; then
-          COMPOSE="docker compose"
-        else
-          COMPOSE="docker-compose"
-        fi
-        echo "=== compose ps ==="
-        $COMPOSE ps || true
-        echo "=== compose logs (tail) ==="
-        $COMPOSE logs --tail=200 || true
+        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+        echo "=== Hata Analizi: Konteyner Logları ==="
+        $COMPOSE_CMD logs --tail=200 || true
       '''
     }
     always {
       sh '''
-        if docker compose version >/dev/null 2>&1; then
-          COMPOSE="docker compose"
-        else
-          COMPOSE="docker-compose"
-        fi
-        $COMPOSE down -v --remove-orphans || true
+        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+        echo "=== Ortam Temizliği ==="
+        $COMPOSE_CMD down -v --remove-orphans || true
       '''
     }
   }

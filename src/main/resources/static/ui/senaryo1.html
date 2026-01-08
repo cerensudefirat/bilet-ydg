@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>YDG Scenario Runner</title>
+    <style>
+        body { font-family: system-ui, Arial; max-width: 980px; margin: 24px auto; padding: 0 12px; }
+        .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
+        label { display:block; margin-top: 8px; font-size: 14px; }
+        input { width: 100%; padding: 10px; margin-top: 6px; border: 1px solid #ccc; border-radius: 10px; }
+        button { padding: 10px 12px; border: 0; border-radius: 10px; cursor: pointer; }
+        .actions { display:flex; gap:10px; flex-wrap: wrap; margin-top: 10px; }
+        .ok { color: #0a7; font-weight: 800; }
+        .bad { color: #c20; font-weight: 800; }
+        pre { background: #0b1020; color: #e8e8e8; padding: 12px; border-radius: 12px; overflow:auto; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        small { color:#666; }
+    </style>
+</head>
+<body>
+<h2>YDG — Scenario Runner</h2>
+<p><b>SC1:</b> Admin etkinlik oluşturuyor mu? (create + public list doğrulama)</p>
+
+<div class="grid">
+    <div class="card">
+        <h3>Config</h3>
+
+        <label for="baseUrl">Base URL</label>
+        <input id="baseUrl" value="http://localhost:8080" />
+
+        <label for="adminUser">Admin Username</label>
+        <input id="adminUser" placeholder="örn: admin" />
+
+        <label for="adminPass">Admin Password</label>
+        <input id="adminPass" type="password" placeholder="örn: adminpass" />
+
+        <small>
+            Not: SC1 için sistemde en az 1 mekan olmalı. Script önce <b>/api/mekan</b> çağırıp ilk mekanId’yi kullanır.
+        </small>
+    </div>
+
+    <div class="card">
+        <h3>Run</h3>
+        <div class="actions">
+            <button id="btnSc1">SC1 Çalıştır</button>
+        </div>
+
+        <p id="status">Durum: -</p>
+        <div id="resultBadge">RESULT: -</div>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Log</h3>
+    <pre id="log"></pre>
+</div>
+
+<script src="/ui/senaryo1.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>YDG Bilet - Senaryo 7 (Admin Denetimi)</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; }
+        .box { border: 1px solid #ccc; padding: 20px; border-radius: 8px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .log-area { background: #1e1e1e; color: #50fa7b; padding: 15px; height: 350px; overflow-y: auto; font-family: 'Courier New', monospace; border-radius: 5px; margin-top: 10px; white-space: pre-wrap; }
+        .badge { padding: 10px 20px; font-weight: bold; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        .pass { background: #28a745; color: white; }
+        .fail { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+<h2>Senaryo 7: Admin Satış Listesi ve Stok Senkronizasyonu</h2>
+<div class="box">
+    Base URL: <input type="text" id="baseUrl" value="http://localhost:8080" style="padding:8px; width:250px;"><br><br>
+    <button id="btnSc7" onclick="runSenaryo7()" style="padding:10px 20px; cursor:pointer; background:#007bff; color:white; border:none; border-radius:4px;">Admin Denetimini Başlat</button>
+</div>
+<div id="resultBadge" class="badge">RESULT: -</div>
+<div id="log" class="log-area"></div>
+
+<script>
+    async function runSenaryo7() {
+        const log = document.getElementById('log');
+        const badge = document.getElementById('resultBadge');
+        const baseUrl = document.getElementById('baseUrl').value.replace(/\/$/, "");
+        const addLog = (m) => { log.innerHTML += `> ${m}\n`; log.scrollTop = log.scrollHeight; };
+
+        const userEmail = `stok_test_${Date.now()}@test.com`;
+        const userPass = "Sifre123";
+        const userAuth = 'Basic ' + btoa(`${userEmail}:${userPass}`);
+        const adminAuth = 'Basic ' + btoa("admin@ydg.com:admin123");
+
+        log.innerHTML = "";
+        badge.className = "badge";
+        badge.innerText = "RESULT: RUNNING";
+
+        try {
+            addLog("1. Müşteri kaydı ve başlangıç stok ölçümü...");
+            await fetch(`${baseUrl}/auth/register`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ email: userEmail, sifre: userPass, ad: "Müşteri", soyad: "Test" })
+            });
+
+            const etkRes = await fetch(`${baseUrl}/api/etkinlik`);
+            const etkinlikler = await etkRes.json();
+            const hedef = etkinlikler[0];
+            const baslangicKalan = Number(hedef.kapasite) - Number(hedef.satilan || 0);
+            addLog(`Etkinlik: ${hedef.baslik} | Kalan Koltuk: ${baslangicKalan}`);
+
+            addLog("2. Müşteri 2 adet bilet satın alıyor...");
+            const alRes = await fetch(`${baseUrl}/api/bilet`, {
+                method: 'POST',
+                headers: { 'Authorization': userAuth, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ etkinlikId: hedef.id, adet: 2 })
+            });
+            const alData = await alRes.json();
+            addLog(`Alım sonrası kalan: ${alData.kalanKoltuk}`);
+
+            addLog("3. ADMIN girişi ile tüm satışlar doğrulanıyor...");
+            const adminBiletRes = await fetch(`${baseUrl}/api/bilet/admin/all`, {
+                headers: { 'Authorization': adminAuth }
+            });
+
+            if (!adminBiletRes.ok) throw new Error("Admin yetki hatası veya endpoint bulunamadı.");
+
+            const tumBiletler = await adminBiletRes.json();
+            addLog(`Admin Panelinde Toplam Bilet: ${tumBiletler.length}`);
+
+            // Stok denetimi: Başlangıçtan 2 eksik olmalı
+            if (Number(alData.kalanKoltuk) === (baslangicKalan - 2)) {
+                addLog("✅ DOĞRULAMA: Admin panelinde koltuk sayısı ve bilet listesi senkronize.");
+                badge.className = "badge pass";
+                badge.innerText = "RESULT: PASS";
+            } else {
+                throw new Error(`Stok Uyuşmazlığı! Beklenen: ${baslangicKalan - 2}, Gelen: ${alData.kalanKoltuk}`);
+            }
+
+        } catch (e) {
+            addLog("FAIL: " + e.message);
+            badge.className = "badge fail";
+            badge.innerText = "RESULT: FAIL";
+        }
+    }
+</script>
+</body>
+</html>

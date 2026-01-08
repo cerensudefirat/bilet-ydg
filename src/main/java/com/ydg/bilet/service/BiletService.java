@@ -9,32 +9,23 @@ import com.ydg.bilet.exception.NotFoundException;
 import com.ydg.bilet.repository.BiletRepository;
 import com.ydg.bilet.repository.EtkinlikRepository;
 import com.ydg.bilet.repository.KullaniciRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.file.AccessDeniedException;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor // Constructor yerine Lombok kullanımı kodu sadeleştirir
 public class BiletService {
-
-    private static final long IPTAL_SON_SAAT = 24; // 24 saat kala iptal yok
 
     private final BiletRepository biletRepository;
     private final EtkinlikRepository etkinlikRepository;
     private final KullaniciRepository kullaniciRepository;
-
-    public BiletService(BiletRepository biletRepository,
-                        EtkinlikRepository etkinlikRepository,
-                        KullaniciRepository kullaniciRepository) {
-        this.biletRepository = biletRepository;
-        this.etkinlikRepository = etkinlikRepository;
-        this.kullaniciRepository = kullaniciRepository;
-    }
 
     private Kullanici currentUser() {
         String principal = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -44,30 +35,32 @@ public class BiletService {
 
     @Transactional
     public BiletSatinAlResponse satinAl(BiletSatinAlRequest req) {
-
-        // ✅ adet yoksa default 1
-        int adet = (req.getAdet() == null ? 1 : req.getAdet());
+        // 1. Adet kontrolü ve varsayılan değer
+        int adet = (req.getAdet() == null || req.getAdet() < 1) ? 1 : req.getAdet();
 
         Kullanici user = currentUser();
 
-        // ✅ Concurrency için kilitli çek
+        // 2. Etkinliği veritabanı kilidiyle çek (Race Condition engelleme)
         Etkinlik etkinlik = etkinlikRepository.findByIdForUpdate(req.getEtkinlikId())
                 .orElseThrow(() -> new NotFoundException("Etkinlik bulunamadı: " + req.getEtkinlikId()));
 
-        // ✅ İptal kontrolü
+        // 3. Etkinlik durum kontrolü
         if (etkinlik.getDurum() == EtkinlikDurum.CANCELLED) {
-            throw new IllegalStateException("İptal edilmiş etkinlikten bilet alınamaz: " + etkinlik.getId());
+            throw new IllegalStateException("İptal edilmiş etkinlikten bilet alınamaz.");
         }
 
-        int kalanOnce = etkinlik.getKapasite() - etkinlik.getSatilan();
+        // 4. Kapasite hesaplaması (Null güvenli)
+        int mevcutSatilan = (etkinlik.getSatilan() == null) ? 0 : etkinlik.getSatilan();
+        int kalanOnce = etkinlik.getKapasite() - mevcutSatilan;
+
         if (kalanOnce < adet) {
             throw new IllegalStateException("Kapasite yetersiz. Kalan koltuk: " + kalanOnce);
         }
 
-        // ✅ sadece 1 kez artır
-        etkinlik.setSatilan(etkinlik.getSatilan() + adet);
+        // 5. Satılan sayısını güncelle
+        etkinlik.setSatilan(mevcutSatilan + adet);
 
-        // ✅ Adet kadar bilet üret
+        // 6. Biletleri üret ve listeye ekle
         List<Bilet> biletler = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
@@ -76,12 +69,12 @@ public class BiletService {
             b.setEtkinlik(etkinlik);
             b.setKullanici(user);
             b.setCreatedAt(now);
+            b.setDurum(BiletDurum.ACTIVE); // Bilet durumunu set etmeyi unutma
             biletler.add(b);
         }
 
+        // 7. Toplu kaydet
         biletRepository.saveAll(biletler);
-
-        List<Long> ids = biletler.stream().map(Bilet::getId).toList();
 
         int kalanKoltuk = etkinlik.getKapasite() - etkinlik.getSatilan();
 
@@ -89,7 +82,7 @@ public class BiletService {
                 etkinlik.getId(),
                 adet,
                 kalanKoltuk,
-                ids
+                biletler.stream().map(Bilet::getId).toList()
         );
     }
 
@@ -104,72 +97,74 @@ public class BiletService {
 
     private BiletResponse toResponse(Bilet b) {
         Etkinlik e = b.getEtkinlik();
-
         return new BiletResponse(
-                b.getId(),              // biletId
-                e.getId(),              // etkinlikId
-                e.getBaslik(),          // etkinlikBaslik
-                e.getTur(),             // etkinlikTur
-                e.getSehir(),           // etkinlikSehir
-                e.getTarih(),           // etkinlikTarih
-                e.getTemelFiyat(),      // temelFiyat
-                b.getCreatedAt()        // satinAlmaTarihi
+                b.getId(),
+                e.getId(),
+                e.getBaslik(),
+                e.getTur(),
+                e.getSehir(),
+                e.getTarih(),
+                e.getTemelFiyat(),
+                b.getCreatedAt()
         );
     }
+
     @Transactional
     public BiletIptalResponse iptalEt(Long biletId) {
         Kullanici user = currentUser();
 
-        Bilet bilet = biletRepository.findByIdForUpdate(biletId)
+        // Bileti çek
+        Bilet bilet = biletRepository.findById(biletId)
                 .orElseThrow(() -> new NotFoundException("Bilet bulunamadı: " + biletId));
 
-        // sahiplik kontrolü
+        // Sahiplik kontrolü
         if (!bilet.getKullanici().getId().equals(user.getId())) {
-            try {
-                throw new AccessDeniedException("Bu bileti iptal edemezsiniz.");
-            } catch (AccessDeniedException e) {
-                throw new RuntimeException(e);
-            }
+            throw new RuntimeException("Bu bileti iptal etme yetkiniz yok.");
         }
 
         if (bilet.getDurum() == BiletDurum.CANCELLED) {
-            throw new IllegalStateException("Bilet zaten iptal edilmiş: " + biletId);
+            throw new IllegalStateException("Bilet zaten iptal edilmiş.");
         }
 
         Etkinlik etkinlik = bilet.getEtkinlik();
 
-        // 24 saat kuralı (etkinlik geçmişteyse de iptal yok)
+        // Zaman kontrolü (24 saat kuralı)
         if (etkinlik.getTarih() == null) {
-            throw new IllegalStateException("Etkinlik tarihi yok, iptal yapılamaz.");
+            throw new IllegalStateException("Etkinlik tarihi belirlenmemiş.");
         }
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime limit = now.plusHours(24);
-
-        if (etkinlik.getTarih().isBefore(limit)) {
-            throw new IllegalStateException("Etkinliğe 24 saatten az kaldı, iptal/iade yapılamaz.");
+        if (etkinlik.getTarih().isBefore(LocalDateTime.now().plusHours(24))) {
+            throw new IllegalStateException("Etkinliğe 24 saatten az süre kaldığı için iptal yapılamaz.");
         }
 
+        // Kapasiteyi geri iade et (Null safe)
+        int güncelSatilan = (etkinlik.getSatilan() == null) ? 0 : etkinlik.getSatilan();
+        etkinlik.setSatilan(Math.max(0, güncelSatilan - 1));
 
-        // satilan azalt (negatife düşmesin)
-        int satilan = etkinlik.getSatilan() == null ? 0 : etkinlik.getSatilan();
-        etkinlik.setSatilan(Math.max(0, satilan - 1));
-
+        // Bilet durumunu güncelle
         bilet.setDurum(BiletDurum.CANCELLED);
         bilet.setCancelledAt(LocalDateTime.now());
 
-        // save gerekmez çoğu durumda (managed entity) ama net olsun:
-        // biletRepository.save(bilet);
+        // Değişiklikleri kaydet
+        biletRepository.save(bilet);
+        etkinlikRepository.save(etkinlik);
 
-        Integer kalan = etkinlik.getKapasite() - etkinlik.getSatilan();
+        // Güncel kalan koltuk sayısını hesapla
+        int yeniKalanKoltuk = etkinlik.getKapasite() - etkinlik.getSatilan();
 
         return new BiletIptalResponse(
                 bilet.getId(),
                 etkinlik.getId(),
-                kalan,
+                yeniKalanKoltuk,
                 bilet.getCancelledAt()
         );
     }
-
-
+    @Transactional(readOnly = true)
+    public List<BiletResponse> tumBiletler() {
+        // Admin yetki kontrolü genellikle Controller seviyesinde @PreAuthorize ile yapılır,
+        // ancak servis katmanında tüm listeyi dönen bu metod admin paneli için şarttır.
+        return biletRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
 }
-

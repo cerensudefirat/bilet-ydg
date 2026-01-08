@@ -7,6 +7,7 @@ import com.ydg.bilet.repository.KullaniciRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Önemli: Veritabanı commit işlemi için
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,9 +19,8 @@ public class AdminRequestService {
     private final AdminRequestRepository adminRequestRepository;
     private final KullaniciRepository kullaniciRepository;
 
-    // Login olan kullanıcının email'ini SecurityContext'ten alıyoruz (Basic Auth)
     private String currentEmail(Authentication auth) {
-        return auth.getName(); // Basic Auth'ta username=email
+        return auth.getName();
     }
 
     public AdminRequestResponse createRequest(Authentication auth) {
@@ -33,7 +33,6 @@ public class AdminRequestService {
             throw new RuntimeException("Zaten adminsin");
         }
 
-        // aktif bekleyen istek varsa yeniden oluşturma
         if (adminRequestRepository.existsByKullanici_IdAndStatus(user.getId(), AdminRequestStatus.PENDING)) {
             throw new RuntimeException("Zaten bekleyen bir admin isteğin var");
         }
@@ -52,6 +51,7 @@ public class AdminRequestService {
                 .stream().map(this::toResponse).toList();
     }
 
+    @Transactional
     public AdminRequestResponse approve(Long requestId) {
         AdminRequest req = adminRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("İstek bulunamadı"));
@@ -60,7 +60,6 @@ public class AdminRequestService {
             throw new RuntimeException("Bu istek zaten karara bağlanmış");
         }
 
-        // kullanıcıyı admin yap
         Kullanici user = req.getKullanici();
         user.setRole(Role.ADMIN);
         kullaniciRepository.save(user);
@@ -72,6 +71,7 @@ public class AdminRequestService {
         return toResponse(saved);
     }
 
+    @Transactional
     public AdminRequestResponse reject(Long requestId) {
         AdminRequest req = adminRequestRepository.findById(requestId)
                 .orElseThrow(() -> new RuntimeException("İstek bulunamadı"));

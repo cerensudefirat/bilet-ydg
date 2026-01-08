@@ -16,9 +16,15 @@ public class Mekan {
     @Column(nullable = false, length = 120)
     private String ad;
 
+    @Column(nullable = false, length = 255)
+    private String adres; // ✅ EKLE
+
     @Column(nullable = false, length = 80)
     private String sehir;
 
     @Column(nullable = false)
     private Integer kapasite;
+
+
+
 }

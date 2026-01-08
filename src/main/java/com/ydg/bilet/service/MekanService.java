@@ -49,7 +49,7 @@ public class MekanService {
     }
 
     private MekanDto toDto(Mekan m) {
-        return new MekanDto(m.getId(), m.getAd(), m.getSehir(),m.getKapasite());
+        return new MekanDto(m.getId(), m.getAd(),m.getAdres(), m.getSehir(),m.getKapasite());
     }
 }
 

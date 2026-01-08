@@ -40,5 +40,10 @@ public class BiletController {
     public ResponseEntity<BiletIptalResponse> iptal(@PathVariable Long biletId) {
         return ResponseEntity.ok(biletService.iptalEt(biletId));
     }
+    @GetMapping("/admin/all")
+// @PreAuthorize("hasRole('ADMIN')") // Eğer SecurityConfig'de metod seviyesinde yetki kullanıyorsan ekle
+    public List<BiletResponse> tumBiletler() {
+        return biletService.tumBiletler();
+    }
 
 }

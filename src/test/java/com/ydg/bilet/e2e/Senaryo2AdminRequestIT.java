@@ -26,7 +26,6 @@ public class Senaryo2AdminRequestIT {
 
     @LocalServerPort
     private int port;
-
     private WebDriver driver;
     private WebDriverWait wait;
 
@@ -38,6 +37,10 @@ public class Senaryo2AdminRequestIT {
         if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
         return "http://localhost:" + port;
     }
+
+
+
+
 
     @BeforeEach
     void setUp() throws Exception {

@@ -106,8 +106,6 @@ class AdminRequestServiceTest {
         assertEquals("user@test.com", resp.getEmail());
         assertEquals("PENDING", resp.getStatus());
         assertNotNull(resp.getCreatedAt());
-
-        // save çağrısında status pending mi?
         ArgumentCaptor<AdminRequest> captor = ArgumentCaptor.forClass(AdminRequest.class);
         verify(adminRequestRepository).save(captor.capture());
         assertEquals(AdminRequestStatus.PENDING, captor.getValue().getStatus());
@@ -184,16 +182,10 @@ class AdminRequestServiceTest {
         when(adminRequestRepository.save(any(AdminRequest.class))).thenAnswer(inv -> inv.getArgument(0));
 
         AdminRequestResponse resp = adminRequestService.approve(5L);
-
-        // user admin oldu mu?
         assertEquals(Role.ADMIN, u.getRole());
         verify(kullaniciRepository).save(u);
-
-        // request approved oldu mu?
         assertEquals("APPROVED", resp.getStatus());
         assertNotNull(resp.getDecidedAt());
-
-        // request save çağrıldı mı?
         verify(adminRequestRepository).save(req);
     }
 
@@ -218,8 +210,6 @@ class AdminRequestServiceTest {
         assertEquals("REJECTED", resp.getStatus());
         assertNotNull(resp.getDecidedAt());
         verify(adminRequestRepository).save(req);
-
-        // reject user role değiştirmez
         verify(kullaniciRepository, never()).save(any());
     }
 }

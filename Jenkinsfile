@@ -73,23 +73,28 @@ pipeline {
     }
 
     stage('Uçtan Uca Testler (Selenium E2E)') {
-      steps {
-        sh '''
-          set -e
-          echo "=== E2E Testleri Başlıyor ==="
-          $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" run --rm \
-            -v "$PWD:/workspace" -w /workspace \
-            -e E2E_BASE_URL=http://app:8080 \
-            -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
-            e2e bash -lc "mvn -B failsafe:integration-test failsafe:verify -Dselenium.remoteUrl=http://selenium:4444/wd/hub -De2e.baseUrl=http://app:8080"
-        '''
-      }
-      post {
-        always {
-          junit '**/target/failsafe-reports/*.xml'
+          steps {
+            sh '''
+              set -e
+              echo "=== E2E Testleri Başlıyor ==="
+
+              # Manuel volume (-v) ve çalışma dizini (-w) tanımlarını siliyoruz.
+              # docker-compose.yml içindeki 'e2e' servisi zaten bunları biliyor.
+
+              docker compose -p "$COMPOSE_PROJECT_NAME" run --rm \
+                -e E2E_BASE_URL=http://app:8080 \
+                -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
+                e2e mvn -B failsafe:integration-test failsafe:verify \
+                -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
+                -De2e.baseUrl=http://app:8080
+            '''
+          }
+          post {
+            always {
+              junit '**/target/failsafe-reports/*.xml'
+            }
+          }
         }
-      }
-    }
   }
 
   post {

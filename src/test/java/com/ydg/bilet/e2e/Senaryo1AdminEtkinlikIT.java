@@ -106,12 +106,12 @@ public class Senaryo1AdminEtkinlikIT {
     @Test
     void sc1_adminCreatesEvent_shouldPass() throws InterruptedException {
         driver.get(baseUrl() + "/ui/senaryo1.html");
-        Thread.sleep(2000); // Sayfa açılışını izle
+        Thread.sleep(2000);
 
         WebElement baseUrlInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("baseUrl")));
         baseUrlInput.clear();
         baseUrlInput.sendKeys(baseUrl());
-        Thread.sleep(1000); // Girişi gör
+        Thread.sleep(1000);
 
         WebElement adminUserInput = driver.findElement(By.id("adminUser"));
         WebElement adminPassInput = driver.findElement(By.id("adminPass"));

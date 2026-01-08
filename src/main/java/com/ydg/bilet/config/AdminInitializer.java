@@ -18,7 +18,7 @@ public class AdminInitializer {
 
     private final KullaniciRepository repo;
     private final MekanRepository mekanRepo;
-    private final EtkinlikRepository etkinlikRepo; // Bunu ekledik
+    private final EtkinlikRepository etkinlikRepo;
     private final PasswordEncoder encoder;
 
     @PostConstruct

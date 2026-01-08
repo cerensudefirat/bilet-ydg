@@ -52,28 +52,14 @@ pipeline {
     stage('Docker Ortamının Başlatılması') {
       steps {
         sh '''
-          set -e
-          echo "=== DEBUG: workspace ==="
-          pwd
-          ls -la
-          echo "=== DEBUG: compose dosyası var mı? ==="
-          ls -la docker-compose.yml
-
-          echo "=== DEBUG: docker/compose version ==="
-          docker --version
-          docker compose version
-
-          echo "=== Eski compose kalıntıları temizleniyor ==="
+          # Projeye ait tüm kalıntıları (varsa) temizle
           docker compose -p "$COMPOSE_PROJECT_NAME" down -v --remove-orphans || true
 
-          echo "=== Yeni servisler ayağa kaldırılıyor ==="
+          # Eğer hala çakışma riski varsa, ismi direkt kontrol edip silebilirsin
+          docker rm -f bilet-e2e bilet-app bilet-db bilet-selenium || true
+
+          # Servisleri başlat
           docker compose -p "$COMPOSE_PROJECT_NAME" up -d --build
-
-          echo "=== Containerlar ==="
-          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
-
-          echo "=== Compose ps ==="
-          docker compose -p "$COMPOSE_PROJECT_NAME" ps || true
         '''
       }
     }

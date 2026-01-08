@@ -90,7 +90,6 @@ class AdminRequestServiceTest {
         when(kullaniciRepository.findByEmail("user@test.com")).thenReturn(Optional.of(k));
         when(adminRequestRepository.existsByKullanici_IdAndStatus(5L, AdminRequestStatus.PENDING)).thenReturn(false);
 
-        // repo save dönüşü (id setlenmiş gibi)
         AdminRequest saved = new AdminRequest();
         saved.setId(10L);
         saved.setKullanici(k);

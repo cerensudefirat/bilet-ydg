@@ -44,26 +44,23 @@ class BiletIntegrationTest {
 
     @BeforeEach
     void setup() {
-        // ✅ Temizlik sırası: FK yüzünden önce bilet, sonra etkinlik...
         biletRepository.deleteAll();
         etkinlikRepository.deleteAll();
         mekanRepository.deleteAll();
         kullaniciRepository.deleteAll();
 
-        // ✅ currentUser() -> email "user1" arıyor
         Kullanici u = new Kullanici();
         u.setAd("User");
         u.setSoyad("One");
         u.setEmail("user1");
-        u.setSifre("x");        // NOT NULL ise şart
-        u.setAktif(true);       // NOT NULL ise şart
+        u.setSifre("x");
+        u.setAktif(true);
         u.setRole(Role.USER);
         kullaniciRepository.save(u);
 
         mekan = new Mekan();
         mekan.setAd("Kongre Merkezi");
-        mekan.setAdres("Adres 1"); // ✅ EKLE
-        mekan.setSehir("Malatya");
+        mekan.setAdres("Adres 1");        mekan.setSehir("Malatya");
         mekan.setKapasite(1200);
         mekan = mekanRepository.save(mekan);
 
@@ -140,7 +137,6 @@ class BiletIntegrationTest {
     @Test
     @WithMockUser(username = "user1", roles = {"USER"})
     void benimBiletlerim_200_listeler() throws Exception {
-        // ✅ kapasite 2, iki bilet aldırıyoruz
         BiletSatinAlRequest req = new BiletSatinAlRequest();
         req.setEtkinlikId(etkinlik.getId());
         req.setAdet(1);
@@ -166,11 +162,9 @@ class BiletIntegrationTest {
     @WithMockUser(username = "user1", roles = {"USER"})
     void biletIptal_200_satilanAzalir_veDurumCancelledOlur() throws Exception {
 
-        // ✅ 0) 24 saat kuralına takılmaması için etkinliği ileri tarihe al
         etkinlik.setTarih(LocalDateTime.now().plusDays(2));
         etkinlikRepository.save(etkinlik);
 
-        // 1) 1 bilet satın al
         com.ydg.bilet.dto.bilet.BiletSatinAlRequest req =
                 new com.ydg.bilet.dto.bilet.BiletSatinAlRequest();
         req.setEtkinlikId(etkinlik.getId());
@@ -186,24 +180,20 @@ class BiletIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        // response içinden bilet id al
         Long biletId = objectMapper.readTree(resBody)
                 .path("biletIdList")
                 .get(0)
                 .asLong();
 
-        // 2) iptal et
         mockMvc.perform(delete("/api/bilet/{id}", biletId).with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.biletId", is(biletId.intValue())))
                 .andExpect(jsonPath("$.etkinlikId", is(etkinlik.getId().intValue())))
                 .andExpect(jsonPath("$.cancelledAt", notNullValue()));
 
-        // 3) etkinlik satilan 0’a düştü mü?
         Etkinlik fresh = etkinlikRepository.findById(etkinlik.getId()).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(0, fresh.getSatilan());
 
-        // 4) bilet durumu CANCELLED oldu mu?
         Bilet b = biletRepository.findById(biletId).orElseThrow();
         org.junit.jupiter.api.Assertions.assertEquals(BiletDurum.CANCELLED, b.getDurum());
     }
@@ -212,7 +202,6 @@ class BiletIntegrationTest {
     @Test
     @WithMockUser(username = "user1", roles = {"USER"})
     void biletIptal_24SaattenAzKaldiysa_409() throws Exception {
-        // etkinliği 10 saat sonraya çek
         etkinlik.setTarih(LocalDateTime.now().plusHours(10));
         etkinlikRepository.save(etkinlik);
 

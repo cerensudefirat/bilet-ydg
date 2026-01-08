@@ -26,9 +26,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-// Eğer senin SecurityConfig'in ayrı bir sınıftaysa buraya eklemen gerekebilir.
-// Örn: @Import(SecurityConfig.class)
-// Şimdilik boş bırakıyorum; sende WebMvcTest zaten context’i ayağa kaldırmış.
 @WebMvcTest(controllers = AdminEtkinlikController.class)
 @Import(SecurityConfig.class) // senin security config’in
 class AdminEtkinlikControllerTest {
@@ -39,8 +36,6 @@ class AdminEtkinlikControllerTest {
     @MockBean
     private EtkinlikService etkinlikService;
 
-    // ❗ DİKKAT: başka controller’ların servislerini mock’lamıyoruz
-    // Çünkü WebMvcTest sadece AdminEtkinlikController yükleyecek
 
     @Test
     @WithMockUser(roles = "ADMIN")

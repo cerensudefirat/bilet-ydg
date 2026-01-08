@@ -30,10 +30,6 @@ class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
-    // ------------------------
-    // REGISTER TESTLERİ
-    // ------------------------
-
     @Test
     void register_emailZatenKayitliysa_hataFirlatir() {
         RegisterRequest req = new RegisterRequest();
@@ -74,10 +70,6 @@ class AuthServiceTest {
         assertEquals("Veli", saved.getSoyad());
         assertTrue(saved.getAktif());
     }
-
-    // ------------------------
-    // LOGIN TESTLERİ
-    // ------------------------
 
     @Test
     void login_kullaniciBulunamazsa_hataFirlatir() {

@@ -64,7 +64,6 @@ class EtkinlikIntegrationTest {
         active1.setDurum(EtkinlikDurum.ACTIVE);
         active1.setMekan(mekan);
 
-        // ✅ FIX: Etkinlik.kapasite NOT NULL ise set etmelisin
         active1.setKapasite(100);
 
         active1 = etkinlikRepository.save(active1);
@@ -78,8 +77,6 @@ class EtkinlikIntegrationTest {
         active2.setSatilan(0);
         active2.setDurum(EtkinlikDurum.ACTIVE);
         active2.setMekan(mekan);
-
-        // ✅ FIX
         active2.setKapasite(200);
 
         active2 = etkinlikRepository.save(active2);
@@ -94,13 +91,10 @@ class EtkinlikIntegrationTest {
         cancelled.setDurum(EtkinlikDurum.CANCELLED);
         cancelled.setMekan(mekan);
 
-        // ✅ FIX (cancelled da DB’ye kaydediliyor, kapasite şart)
         cancelled.setKapasite(300);
 
         cancelled = etkinlikRepository.save(cancelled);
     }
-
-    // ---------------- PUBLIC ----------------
 
     @Test
     void public_liste_sadeceActive_doner_ve_tarihe_gore_sirali() throws Exception {
@@ -128,8 +122,6 @@ class EtkinlikIntegrationTest {
                 .andExpect(status().isNotFound());
     }
 
-    // ---------------- ADMIN: CANCEL ----------------
-
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
     void admin_iptal_200() throws Exception {
@@ -140,7 +132,6 @@ class EtkinlikIntegrationTest {
                 .andExpect(jsonPath("$.durum", is("CANCELLED")));
     }
 
-    // ---------------- ADMIN: CREATE ----------------
 
     @Test
     @WithMockUser(username = "admin", roles = {"ADMIN"})
@@ -153,7 +144,6 @@ class EtkinlikIntegrationTest {
         req.setTemelFiyat(new BigDecimal("150.00"));
         req.setMekanId(mekan.getId());
 
-        // ✅ FIX: create request kapasite istiyorsa set et
         req.setKapasite(250);
 
         mockMvc.perform(post("/api/admin/etkinlik")
@@ -167,8 +157,6 @@ class EtkinlikIntegrationTest {
                 .andExpect(jsonPath("$.baslik", is("Yeni Etkinlik")))
                 .andExpect(jsonPath("$.mekanId", is(mekan.getId().intValue())));
     }
-
-    // ---------------- ADMIN: UPDATE ----------------
 
     @Test
     @WithMockUser(username = "user", roles = {"USER"})

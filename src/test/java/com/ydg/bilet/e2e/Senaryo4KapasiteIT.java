@@ -67,5 +67,4 @@ public class Senaryo4KapasiteIT {
 
         assertEquals("RESULT: PASS", badge.getText().trim());
     }
-    // ... tearDown ve diagnostic metodları aynen kalabilir
 }

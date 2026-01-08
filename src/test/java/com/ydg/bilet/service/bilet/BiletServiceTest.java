@@ -42,7 +42,6 @@ class BiletServiceTest {
 
     @Test
     void iptalEt_basarili_satilanAzalir_veBiletCancelledOlur() {
-        // 1. GIVEN (Hazırlık)
         Kullanici user = new Kullanici();
         user.setId(10L);
         user.setEmail("user1");
@@ -55,18 +54,15 @@ class BiletServiceTest {
         e.setTarih(LocalDateTime.now().plusDays(7)); // 24 saat kuralı için gelecek tarih
 
         Bilet b = new Bilet();
-        b.setId(99L); // Logdaki 99 ID'si ile eşleşmeli
+        b.setId(99L);
         b.setEtkinlik(e);
         b.setKullanici(user);
         b.setDurum(BiletDurum.ACTIVE);
 
-        // Servis kodun findById(biletId) kullandığı için burayı ona göre mockla
         when(biletRepository.findById(99L)).thenReturn(Optional.of(b));
 
-        // 2. WHEN (Çalıştırma)
         BiletIptalResponse res = biletService.iptalEt(99L);
 
-        // 3. THEN (Doğrulama)
         assertEquals(99L, res.getBiletId());
         assertEquals(6, e.getSatilan()); // 7 idi, 6 oldu mu?
         assertEquals(BiletDurum.CANCELLED, b.getDurum()); // İptal oldu mu?
@@ -75,7 +71,6 @@ class BiletServiceTest {
 
     @Test
     void iptalEt_biletYoksa_NotFound() {
-        // Sadece gerekli stubbing'i bırakıyoruz (UnnecessaryStubbing hatasını önler)
         when(kullaniciRepository.findByEmail("user1")).thenReturn(Optional.of(new Kullanici()));
         when(biletRepository.findById(123L)).thenReturn(Optional.empty());
 

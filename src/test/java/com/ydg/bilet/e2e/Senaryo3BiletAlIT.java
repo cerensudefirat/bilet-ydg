@@ -52,7 +52,6 @@ public class Senaryo3BiletAlIT {
 
     @Test
     void sc3_userBuysTicket_shouldPass() {
-        // baseUrl() metodunu kullanarak dinamik adrese gidiyoruz
         driver.get(baseUrl() + "/ui/senaryo3.html");
 
         WebElement baseUrlInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("baseUrl")));
@@ -65,7 +64,7 @@ public class Senaryo3BiletAlIT {
         wait.until(d -> badge.getText().contains("PASS") || badge.getText().contains("FAIL"));
 
         if (badge.getText().contains("FAIL")) {
-            System.out.println("❌ HATA DETAYI: " + driver.findElement(By.id("log")).getText());
+            System.out.println(" HATA DETAYI: " + driver.findElement(By.id("log")).getText());
         }
 
         assertEquals("RESULT: PASS", badge.getText().trim());

@@ -53,7 +53,6 @@ public class Senaryo2AdminRequestIT {
         }
         wait = new WebDriverWait(driver, Duration.ofSeconds(35));
     }
-// baseUrl() metodunu Senaryo 1'deki gibi güncelleyin
 
     @AfterEach
     void tearDown() {

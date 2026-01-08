@@ -53,10 +53,8 @@ public class Senaryo1AdminEtkinlikIT {
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
-        // Jenkins ortamı için headless ayarları
         options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--remote-allow-origins=*");
 
-        // Hem sistem özelliğini hem ortam değişkenini kontrol eder
         String remoteUrl = System.getProperty("selenium.remoteUrl");
         if (remoteUrl == null) remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
 

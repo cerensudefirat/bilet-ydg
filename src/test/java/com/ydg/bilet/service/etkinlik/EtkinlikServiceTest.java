@@ -31,6 +31,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EtkinlikServiceTest {
 
+
+
+
     @Mock
     EtkinlikRepository etkinlikRepository;
 

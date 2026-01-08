@@ -45,7 +45,6 @@
       badge.innerText = "RESULT: RUNNING";
 
       try {
-        // 1) Register
         addLog("1. Kullanıcı kaydı yapılıyor...");
         const regRes = await fetch(`${baseUrl}/auth/register`, {
           method: 'POST',
@@ -58,7 +57,6 @@
           throw new Error("Register başarısız. Status=" + regRes.status + " Body=" + t);
         }
 
-        // 2) İlk kapasite ölç
         addLog("2. Başlangıç kapasitesi ölçülüyor...");
         const etkRes = await fetch(`${baseUrl}/api/etkinlik`);
         addLog("ETKINLIK LIST STATUS: " + etkRes.status);
@@ -77,7 +75,6 @@
         const ilkKoltuk = Number(hedef.kapasite) - Number(hedef.satilan || 0);
         addLog(`Hedef etkinlik: id=${hedef.id} baslik=${hedef.baslik || "-"} kalan=${ilkKoltuk}`);
 
-        // 3) Bilet satın al
         addLog("3. Bilet satın alınıyor...");
         const alRes = await fetch(`${baseUrl}/api/bilet`, {
           method: 'POST',
@@ -87,7 +84,6 @@
 
         addLog("SATIN AL STATUS: " + alRes.status);
 
-        // json parse fail olursa yakalayalım
         let alData;
         try {
           alData = await alRes.json();
@@ -102,7 +98,6 @@
           throw new Error("Satın alma başarısız. Status=" + alRes.status);
         }
 
-        // ✅ FIX: backend alan adı biletIdList
         const biletId =
           (alData.biletIdList && alData.biletIdList[0]) ? alData.biletIdList[0] : null;
 
@@ -112,7 +107,6 @@
 
         addLog("Satın alınan biletId: " + biletId);
 
-        // 4) İptal et
         addLog("4. Bilet iptal ediliyor...");
         const iptalRes = await fetch(`${baseUrl}/api/bilet/${biletId}`, {
           method: 'DELETE',

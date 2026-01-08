@@ -39,13 +39,13 @@ public class Senaryo7StokIT {
         }
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
+
     @AfterEach
     void tearDown() { if (driver != null) driver.quit(); }
 
     @Test
     void sc7_adminInventoryControl() {
         driver.get(baseUrl() + "/ui/senaryo7.html");
-
         WebElement baseUrlInput = wait.until(ExpectedConditions.presenceOfElementLocated(By.id("baseUrl")));
         baseUrlInput.clear();
         baseUrlInput.sendKeys(baseUrl());

@@ -60,31 +60,34 @@ docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
       }
     }
 
-    stage('Uçtan Uca Testler (Selenium E2E)') {
-      steps {
-        sh '''#!/usr/bin/env bash
+stage('Uçtan Uca Testler (Selenium E2E)') {
+  steps {
+    sh '''#!/usr/bin/env bash
 set -e
 COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-echo "=== E2E container içinde workspace kontrol ==="
-$COMPOSE_CMD run --rm e2e bash -lc "pwd && ls -la"
+echo "=== Jenkins workspace ==="
+pwd
+ls -la
 
-echo "=== E2E testleri çalıştırılıyor (mvn) ==="
+echo "=== E2E: workspace'i manuel mount ederek çalıştır ==="
 $COMPOSE_CMD run --rm \
+  -v "$PWD:/workspace" \
+  -w /workspace \
   -e E2E_BASE_URL=http://app:8080 \
   -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
-  e2e bash -lc "mvn -B failsafe:integration-test failsafe:verify \
+  e2e bash -lc "ls -la && test -f pom.xml && mvn -B failsafe:integration-test failsafe:verify \
     -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
     -De2e.baseUrl=http://app:8080"
 '''
-      }
-      post {
-        always {
-          junit '**/target/failsafe-reports/*.xml'
-        }
-      }
+  }
+  post {
+    always {
+      junit '**/target/failsafe-reports/*.xml'
     }
   }
+}
+
 
   post {
     failure {

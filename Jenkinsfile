@@ -4,7 +4,7 @@ pipeline {
   options {
     timestamps()
     skipDefaultCheckout(true)
-    disableConcurrentBuilds() // aynı job aynı anda 2 kez çalışmasın
+    disableConcurrentBuilds()
   }
 
   environment {
@@ -12,12 +12,17 @@ pipeline {
   }
 
   stages {
+
     stage('Çalışma Alanı Temizliği') {
-      steps { deleteDir() }
+      steps {
+        deleteDir()
+      }
     }
 
     stage('Kodların Çekilmesi') {
-      steps { checkout scm }
+      steps {
+        checkout scm
+      }
     }
 
     stage('Paketleme (Build)') {
@@ -40,7 +45,7 @@ pipeline {
 
     stage('Docker Ortamının Başlatılması') {
       steps {
-        sh '''
+        sh '''#!/usr/bin/env bash
           set -e
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
@@ -52,34 +57,13 @@ pipeline {
 
           echo "=== Containerlar ==="
           docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
-
-          echo "=== Sağlık kontrolleri (app/selenium) ==="
-          # app health
-          for i in $(seq 1 60); do
-            if $COMPOSE_CMD exec -T app sh -lc "curl -fsS http://localhost:8080/actuator/health >/dev/null"; then
-              echo "APP OK"
-              break
-            fi
-            echo "APP bekleniyor... ($i)"
-            sleep 2
-          done
-
-          # selenium health
-          for i in $(seq 1 60); do
-            if $COMPOSE_CMD exec -T selenium sh -lc "curl -fsS http://localhost:4444/wd/hub/status >/dev/null || curl -fsS http://localhost:4444/status >/dev/null"; then
-              echo "SELENIUM OK"
-              break
-            fi
-            echo "SELENIUM bekleniyor... ($i)"
-            sleep 2
-          done
         '''
       }
     }
 
     stage('Uçtan Uca Testler (Selenium E2E)') {
       steps {
-        sh '''
+        sh '''#!/usr/bin/env bash
           set -e
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
@@ -99,23 +83,30 @@ pipeline {
     }
   }
 
- post {
-   failure {
-     sh '''
-       COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+  post {
+    failure {
+      sh '''#!/usr/bin/env bash
+        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-       echo "=== APP LOGS ==="
-       docker logs --tail=200 bilet-ydg-ci-app-1 || true
+        echo "=== APP LOGS ==="
+        docker logs --tail=200 bilet-ydg-ci-app-1 || true
 
-       echo "=== DB LOGS ==="
-       docker logs --tail=200 bilet-ydg-ci-db-1 || true
+        echo "=== DB LOGS ==="
+        docker logs --tail=200 bilet-ydg-ci-db-1 || true
 
-       echo "=== SELENIUM LOGS ==="
-       docker logs --tail=200 bilet-ydg-ci-selenium-1 || true
+        echo "=== SELENIUM LOGS ==="
+        docker logs --tail=200 bilet-ydg-ci-selenium-1 || true
 
-       echo "=== COMPOSE LOGS (GENEL) ==="
-       $COMPOSE_CMD logs --tail=200 || true
-     '''
-   }
-
+        echo "=== COMPOSE LOGS (GENEL) ==="
+        $COMPOSE_CMD logs --tail=200 || true
+      '''
+    }
+    always {
+      sh '''#!/usr/bin/env bash
+        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+        echo "=== Ortam Temizliği ==="
+        $COMPOSE_CMD down -v --remove-orphans || true
+      '''
+    }
+  }
 }

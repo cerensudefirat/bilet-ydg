@@ -31,9 +31,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class EtkinlikServiceTest {
 
-
-
-
     @Mock
     EtkinlikRepository etkinlikRepository;
 
@@ -53,8 +50,6 @@ class EtkinlikServiceTest {
         mekan1.setSehir("Malatya");
         mekan1.setKapasite(1200);
     }
-
-    // ---------- PUBLIC ----------
 
     @Test
     void publicListele_activeOlanlariSiraliDoner() {
@@ -111,7 +106,6 @@ class EtkinlikServiceTest {
         verify(etkinlikRepository).findById(99L);
     }
 
-    // ---------- ADMIN ----------
 
     @Test
     void olustur_mekanIdYoksaIllegalArgument() {
@@ -147,7 +141,6 @@ class EtkinlikServiceTest {
 
         when(mekanRepository.findById(10L)).thenReturn(Optional.of(mekan1));
 
-        // save() içine ne gittiğini yakalayacağız
         ArgumentCaptor<Etkinlik> captor = ArgumentCaptor.forClass(Etkinlik.class);
 
         when(etkinlikRepository.save(any(Etkinlik.class))).thenAnswer(inv -> {
@@ -259,13 +252,11 @@ class EtkinlikServiceTest {
         assertEquals("CANCELLED", res.getDurum());
         assertEquals(12, res.getIptalEdilenBiletSayisi());
 
-        // entity üzerindeki state değişti mi?
         assertEquals(EtkinlikDurum.CANCELLED, e.getDurum());
 
         verify(etkinlikRepository).findById(55L);
     }
 
-    // ---------- helpers ----------
 
     private Etkinlik etkinlik(Long id, String baslik, EtkinlikDurum durum, LocalDateTime tarih, Mekan mekan) {
         Etkinlik e = new Etkinlik();

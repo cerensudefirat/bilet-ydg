@@ -10,7 +10,6 @@ pipeline {
   environment {
     COMPOSE_PROJECT_NAME = "bilet-ydg"
     COMPOSE_CMD = "docker compose"
-    // Konteyner isimlerini yml dosyanla eşleştiriyoruz
     APP_HOST = "bilet-app"
     SELENIUM_HOST = "bilet-selenium"
   }
@@ -86,7 +85,6 @@ pipeline {
     }
     always {
         echo "Analiz için konteynerlar açık bırakıldı."
-        // sh '$COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" down -v || true'
     }
   }
 }

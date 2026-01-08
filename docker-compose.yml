@@ -25,16 +25,17 @@ services:
       SPRING_DATASOURCE_USERNAME: bilet
       SPRING_DATASOURCE_PASSWORD: bilet
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      # Uygulamanın hangi portta çalıştığını netleştirelim
+      # Testlerin beklediği admin verileri veya ayarlar için 'test' profilini aktif ediyoruz
+      SPRING_PROFILES_ACTIVE: test
       SERVER_PORT: 8080
     ports:
       - "8080:8080"
     healthcheck:
-      # Actuator üzerinden uygulamanın gerçekten ayağa kalkıp kalkmadığını kontrol eder
+      # Actuator üzerinden uygulamanın gerçekten hazır olup olmadığını kontrol eder
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
-      interval: 15s
+      interval: 10s
       timeout: 10s
-      retries: 10
+      retries: 15
       start_period: 40s
     networks:
       - bilet-network
@@ -47,11 +48,12 @@ services:
       - "4444:4444"
       - "7900:7900"
     healthcheck:
-      # Selenium'un hazır olup olmadığını doğrular
+      # Selenium'un "ready: true" vermesini bekleyerek E2E testlerinin çökmesini engelleriz
       test: ["CMD-SHELL", "curl -fsS http://localhost:4444/status | grep -q '\"ready\": true' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 10s
     networks:
       - bilet-network
 
@@ -68,6 +70,7 @@ services:
       - .:/workspace
       - m2_cache:/root/.m2
     environment:
+      # İç ağda app ve selenium servislerine isimleri üzerinden erişir
       E2E_BASE_URL: http://app:8080
       SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
     networks:

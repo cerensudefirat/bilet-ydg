@@ -40,6 +40,7 @@ public class Senaryo7StokIT {
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
     }
 
+
     @AfterEach
     void tearDown() { if (driver != null) driver.quit(); }
 

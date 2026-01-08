@@ -67,12 +67,16 @@ pipeline {
           set -e
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
+          # (İsteğe bağlı) workspace mount gerçekten var mı kontrol
+          $COMPOSE_CMD run --rm e2e bash -lc "pwd && ls -la"
+
+          # Maven wrapper yerine container içindeki mvn ile çalıştır
           $COMPOSE_CMD run --rm \
             -e E2E_BASE_URL=http://app:8080 \
             -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
-            e2e bash -lc "./mvnw -B failsafe:integration-test failsafe:verify ...
-            -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
-            -De2e.baseUrl=http://app:8080"
+            e2e bash -lc "mvn -B failsafe:integration-test failsafe:verify \
+              -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
+              -De2e.baseUrl=http://app:8080"
         '''
       }
       post {
@@ -81,7 +85,7 @@ pipeline {
         }
       }
     }
-  }
+
 
   post {
     failure {

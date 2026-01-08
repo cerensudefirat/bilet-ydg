@@ -32,6 +32,8 @@ public class Senaryo2AdminRequestIT {
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
     private String baseUrl() {
+        String prop = System.getProperty("e2e.baseUrl");
+        if (prop != null && !prop.isBlank()) return prop.replaceAll("/$", "");
         String env = System.getenv("E2E_BASE_URL");
         if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
         return "http://localhost:" + port;
@@ -39,30 +41,19 @@ public class Senaryo2AdminRequestIT {
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--remote-allow-origins=*");
 
-        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
-        if (remoteUrl != null && !remoteUrl.isBlank()) {
-            options.addArguments("--headless=new");
-        }
-
-        options.addArguments(
-                "--disable-gpu",
-                "--no-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-extensions",
-                "--disable-popup-blocking",
-                "--remote-allow-origins=*",
-                "--disable-blink-features=AutomationControlled"
-        );
+        String remoteUrl = System.getProperty("selenium.remoteUrl");
+        if (remoteUrl == null) remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
 
         if (remoteUrl != null && !remoteUrl.isBlank()) {
             driver = new RemoteWebDriver(new URL(remoteUrl), options);
         } else {
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
-
         wait = new WebDriverWait(driver, Duration.ofSeconds(35));
     }
+// baseUrl() metodunu Senaryo 1'deki gibi güncelleyin
 
     @AfterEach
     void tearDown() {

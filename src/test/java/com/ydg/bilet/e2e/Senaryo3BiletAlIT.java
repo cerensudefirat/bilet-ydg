@@ -23,8 +23,9 @@ public class Senaryo3BiletAlIT {
     private WebDriver driver;
     private WebDriverWait wait;
 
-    // Docker ağı için dinamik URL (app:8080)
     private String baseUrl() {
+        String prop = System.getProperty("e2e.baseUrl");
+        if (prop != null && !prop.isBlank()) return prop.replaceAll("/$", "");
         String env = System.getenv("E2E_BASE_URL");
         if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
         return "http://localhost:" + port;
@@ -33,25 +34,16 @@ public class Senaryo3BiletAlIT {
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--remote-allow-origins=*");
 
-        // Jenkins/Docker ortamında HEADLESS zorunludur
-        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
-        if (remoteUrl != null && !remoteUrl.isBlank()) {
-            options.addArguments("--headless=new");
-        }
-
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--remote-allow-origins=*");
+        String remoteUrl = System.getProperty("selenium.remoteUrl");
+        if (remoteUrl == null) remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
 
         if (remoteUrl != null && !remoteUrl.isBlank()) {
-            // Docker ortamında RemoteWebDriver kullan
             driver = new RemoteWebDriver(new URL(remoteUrl), options);
         } else {
-            // Yerel ortamda standart ChromeDriver kullan
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
-
         wait = new WebDriverWait(driver, Duration.ofSeconds(25));
     }
 

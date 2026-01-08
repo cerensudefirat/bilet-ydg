@@ -54,18 +54,18 @@ pipeline {
     }
 
     stage('Uçtan Uca Testler (Selenium E2E)') {
-      steps {
-        sh '''
-          set -e
-          echo "=== E2E Testleri Başlıyor (Direct execution) ==="
+          steps {
+            sh '''
+              set -e
+              echo "=== E2E Testleri Başlıyor ==="
 
-          # Docker Compose Run yerine doğrudan Maven Wrapper kullanıyoruz
-          # Bu sayede 'pom.xml bulunamadı' hatası kalıcı olarak çözülür
-          ./mvnw -B failsafe:integration-test failsafe:verify \
-            -Dselenium.remoteUrl=http://${SELENIUM_HOST}:4444/wd/hub \
-            -De2e.baseUrl=http://${APP_HOST}:8080
-        '''
-      }
+              # Parametreleri Maven'a iletiyoruz
+              ./mvnw -B failsafe:integration-test failsafe:verify \
+                -Dselenium.remoteUrl=http://bilet-selenium:4444/wd/hub \
+                -De2e.baseUrl=http://bilet-app:8080
+            '''
+          }
+
       post {
         always {
           junit '**/target/failsafe-reports/*.xml'

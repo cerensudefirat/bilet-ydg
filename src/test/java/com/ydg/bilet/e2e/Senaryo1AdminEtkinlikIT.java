@@ -31,6 +31,8 @@ public class Senaryo1AdminEtkinlikIT {
     private WebDriverWait wait;
 
     private String baseUrl() {
+        String prop = System.getProperty("e2e.baseUrl");
+        if (prop != null && !prop.isBlank()) return prop.replaceAll("/$", "");
         String env = System.getenv("E2E_BASE_URL");
         if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
         return "http://localhost:" + port;
@@ -51,31 +53,21 @@ public class Senaryo1AdminEtkinlikIT {
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
+        // Jenkins ortamı için headless ayarları
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--remote-allow-origins=*");
 
-        String remote = System.getenv("SELENIUM_REMOTE_URL");
-        if (remote != null && !remote.isBlank()) {
-            options.addArguments("--headless=new"); // Jenkins'te ekranı simüle et
-        }
+        // Hem sistem özelliğini hem ortam değişkenini kontrol eder
+        String remoteUrl = System.getProperty("selenium.remoteUrl");
+        if (remoteUrl == null) remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
 
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--window-size=1400,900");
-        options.addArguments("--remote-allow-origins=*");
-
-        options.setPageLoadStrategy(PageLoadStrategy.EAGER);
-
-        System.out.println("E2E baseUrl = " + baseUrl());
-        debugCallMekan();
-
-        if (remote != null && !remote.isBlank()) {
-            driver = new RemoteWebDriver(new URL(remote), options);
+        if (remoteUrl != null && !remoteUrl.isBlank()) {
+            driver = new RemoteWebDriver(new URL(remoteUrl), options);
         } else {
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
-
         wait = new WebDriverWait(driver, Duration.ofSeconds(30));
-        waitForServerReachable();
     }
+
 
     private void waitForServerReachable() {
         String url = baseUrl() + "/ui/senaryo1.html";

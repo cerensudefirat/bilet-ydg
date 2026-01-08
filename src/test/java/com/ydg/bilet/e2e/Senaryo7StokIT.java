@@ -21,22 +21,26 @@ public class Senaryo7StokIT {
     private WebDriverWait wait;
 
     private String baseUrl() {
+        String prop = System.getProperty("e2e.baseUrl");
+        if (prop != null && !prop.isBlank()) return prop.replaceAll("/$", "");
         String env = System.getenv("E2E_BASE_URL");
-        return (env != null && !env.isBlank()) ? env.replaceAll("/$", "") : "http://localhost:" + port;
+        if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
+        return "http://localhost:" + port;
     }
-
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
-        String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
+        options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage", "--remote-allow-origins=*");
+
+        String remoteUrl = System.getProperty("selenium.remoteUrl");
+        if (remoteUrl == null) remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
 
         if (remoteUrl != null && !remoteUrl.isBlank()) {
-            options.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage");
             driver = new RemoteWebDriver(new URL(remoteUrl), options);
         } else {
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
-        wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        wait = new WebDriverWait(driver, Duration.ofSeconds(25));
     }
 
     @AfterEach

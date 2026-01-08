@@ -52,8 +52,6 @@ public class Senaryo1AdminEtkinlikIT {
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
 
-        // Jenkins/Docker ortamında HEADLESS zorunludur.
-        // Ancak sen istersen yerelde (local) görebilirsin.
         String remote = System.getenv("SELENIUM_REMOTE_URL");
         if (remote != null && !remote.isBlank()) {
             options.addArguments("--headless=new"); // Jenkins'te ekranı simüle et
@@ -70,10 +68,8 @@ public class Senaryo1AdminEtkinlikIT {
         debugCallMekan();
 
         if (remote != null && !remote.isBlank()) {
-            // Jenkins/Docker ağı için RemoteWebDriver (http://selenium:4444/wd/hub)
             driver = new RemoteWebDriver(new URL(remote), options);
         } else {
-            // IntelliJ / Yerel test için
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
 
@@ -119,11 +115,9 @@ public class Senaryo1AdminEtkinlikIT {
 
     @Test
     void sc1_adminCreatesEvent_shouldPass() throws InterruptedException {
-        // 1) UI sayfasına git
         driver.get(baseUrl() + "/ui/senaryo1.html");
         Thread.sleep(2000); // Sayfa açılışını izle
 
-        // 2) Form alanlarını set et
         WebElement baseUrlInput = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("baseUrl")));
         baseUrlInput.clear();
         baseUrlInput.sendKeys(baseUrl());
@@ -138,24 +132,21 @@ public class Senaryo1AdminEtkinlikIT {
 
         adminPassInput.clear();
         adminPassInput.sendKeys(adminPass());
-        Thread.sleep(2000); // Butona basmadan önce verileri gör
+        Thread.sleep(2000);
 
-        // 3) Click
         WebElement btn = wait.until(ExpectedConditions.elementToBeClickable(By.id("btnSc1")));
         btn.click();
 
-        // 4) UI Takibi
         WebElement status = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("status")));
         WebElement badge = driver.findElement(By.id("resultBadge"));
         WebElement log = driver.findElement(By.id("log"));
 
-        // 5) Sonucu bekle ve 5 saniye boyunca ekranda tut
         try {
             wait.until(d -> {
                 String t = badge.getText().trim();
                 return t.equalsIgnoreCase("RESULT: PASS") || t.equalsIgnoreCase("RESULT: FAIL");
             });
-            Thread.sleep(5000); // PASS sonucunu ekranda keyifle izle :)
+            Thread.sleep(5000);
         } catch (TimeoutException te) {
             dumpUiState("timeout_no_result");
             fail("SC1 sonucu gelmedi.");

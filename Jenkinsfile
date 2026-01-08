@@ -6,6 +6,11 @@ pipeline {
     skipDefaultCheckout(true)
   }
 
+  environment {
+    // Aynı makinede başka job'lar da koşarsa çakışmayı azaltır
+    COMPOSE_PROJECT_NAME = "bilet-ydg-ci"
+  }
+
   stages {
     stage('Çalışma Alanı Temizliği') {
       steps { deleteDir() }
@@ -40,12 +45,23 @@ pipeline {
           # Docker Compose komutunu belirle
           COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
 
-          # Eski kalıntıları temizle ve yeni yapıyı ayağa kaldır
+          echo "=== CI Ön Temizlik: İsim çakışmalarını engelle ==="
+          # docker-compose.yml içinde container_name varsa bunlar şart (Conflict hatasını keser)
+          docker rm -f bilet-db || true
+          docker rm -f bilet-selenium || true
+          docker rm -f bilet-app || true
+
+          echo "=== Eski compose kalıntıları temizleniyor ==="
           $COMPOSE_CMD down -v --remove-orphans || true
+
+          echo "=== Yeni servisler ayağa kaldırılıyor ==="
           $COMPOSE_CMD up -d --build
 
           echo "Servislerin (App, DB, Selenium) hazır olması bekleniyor..."
           sleep 20
+
+          echo "=== Çalışan containerlar ==="
+          docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" || true
         '''
       }
     }

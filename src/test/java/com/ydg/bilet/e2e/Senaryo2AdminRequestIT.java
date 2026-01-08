@@ -39,6 +39,10 @@ public class Senaryo2AdminRequestIT {
         return "http://localhost:" + port;
     }
 
+
+
+
+
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();

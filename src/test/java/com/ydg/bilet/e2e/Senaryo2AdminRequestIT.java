@@ -27,6 +27,9 @@ public class Senaryo2AdminRequestIT {
     @LocalServerPort
     private int port;
 
+
+
+
     private WebDriver driver;
     private WebDriverWait wait;
 

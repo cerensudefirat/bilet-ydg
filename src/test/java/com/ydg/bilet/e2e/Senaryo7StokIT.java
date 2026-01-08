@@ -51,10 +51,8 @@ public class Senaryo7StokIT {
         baseUrlInput.sendKeys(baseUrl());
 
         driver.findElement(By.id("btnSc7")).click();
-
         WebElement badge = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("resultBadge")));
         wait.until(d -> badge.getText().contains("PASS") || badge.getText().contains("FAIL"));
-
         assertEquals("RESULT: PASS", badge.getText().trim());
     }
 }

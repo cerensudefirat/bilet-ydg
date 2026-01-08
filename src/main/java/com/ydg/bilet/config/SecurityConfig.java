@@ -49,6 +49,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                         // 5) Diğer her şey login ister
+                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .httpBasic(b -> b.authenticationEntryPoint(entryPoint));

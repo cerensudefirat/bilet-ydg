@@ -99,20 +99,23 @@ pipeline {
     }
   }
 
-  post {
-    failure {
-      sh '''
-        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
-        echo "=== Hata Analizi: Konteyner Logları ==="
-        $COMPOSE_CMD logs --tail=200 || true
-      '''
-    }
-    always {
-      sh '''
-        COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
-        echo "=== Ortam Temizliği ==="
-        $COMPOSE_CMD down -v --remove-orphans || true
-      '''
-    }
-  }
+ post {
+   failure {
+     sh '''
+       COMPOSE_CMD=$(docker compose version >/dev/null 2>&1 && echo "docker compose" || echo "docker-compose")
+
+       echo "=== APP LOGS ==="
+       docker logs --tail=200 bilet-ydg-ci-app-1 || true
+
+       echo "=== DB LOGS ==="
+       docker logs --tail=200 bilet-ydg-ci-db-1 || true
+
+       echo "=== SELENIUM LOGS ==="
+       docker logs --tail=200 bilet-ydg-ci-selenium-1 || true
+
+       echo "=== COMPOSE LOGS (GENEL) ==="
+       $COMPOSE_CMD logs --tail=200 || true
+     '''
+   }
+
 }

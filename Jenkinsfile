@@ -8,7 +8,7 @@ pipeline {
   }
 
   environment {
-    COMPOSE_PROJECT_NAME = "bilet-ydg-ci"
+    COMPOSE_PROJECT_NAME = "bilet-ydg"
     COMPOSE_CMD = "docker compose"
   }
 

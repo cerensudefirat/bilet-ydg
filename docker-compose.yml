@@ -1,6 +1,7 @@
 services:
   db:
-    image: postgres:15
+    image: postgres:15-alpine
+    container_name: bilet-db
     environment:
       POSTGRES_DB: biletdb
       POSTGRES_USER: bilet
@@ -8,11 +9,14 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bilet -d biletdb"]
       interval: 5s
-      timeout: 3s
-      retries: 20
+      timeout: 5s
+      retries: 5
+    networks:
+      - bilet-network
 
   app:
     build: .
+    container_name: bilet-app
     depends_on:
       db:
         condition: service_healthy
@@ -21,31 +25,39 @@ services:
       SPRING_DATASOURCE_USERNAME: bilet
       SPRING_DATASOURCE_PASSWORD: bilet
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      # Uygulamanın hangi portta çalıştığını netleştirelim
+      SERVER_PORT: 8080
     ports:
       - "8080:8080"
     healthcheck:
+      # Actuator üzerinden uygulamanın gerçekten ayağa kalkıp kalkmadığını kontrol eder
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
-      interval: 10s
-      timeout: 3s
-      retries: 15
-      start_period: 20s
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    networks:
+      - bilet-network
 
   selenium:
     image: selenium/standalone-chrome:latest
+    container_name: bilet-selenium
     shm_size: 2gb
     ports:
       - "4444:4444"
       - "7900:7900"
     healthcheck:
-      # Selenium Grid status endpoint
-      test: ["CMD-SHELL", "curl -fsS http://localhost:4444/wd/hub/status || curl -fsS http://localhost:4444/status || exit 1"]
+      # Selenium'un hazır olup olmadığını doğrular
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4444/status | grep -q '\"ready\": true' || exit 1"]
       interval: 10s
       timeout: 5s
-      retries: 30
-      start_period: 20s
+      retries: 10
+    networks:
+      - bilet-network
 
   e2e:
     image: maven:3.9-eclipse-temurin-17
+    container_name: bilet-e2e
     depends_on:
       app:
         condition: service_healthy
@@ -58,6 +70,12 @@ services:
     environment:
       E2E_BASE_URL: http://app:8080
       SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
+    networks:
+      - bilet-network
+
+networks:
+  bilet-network:
+    driver: bridge
 
 volumes:
   m2_cache:

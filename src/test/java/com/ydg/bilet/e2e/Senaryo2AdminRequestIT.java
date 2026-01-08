@@ -31,22 +31,15 @@ public class Senaryo2AdminRequestIT {
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS");
 
-    // Docker ortamında konteynerlar birbirini isimle (app) tanır
     private String baseUrl() {
         String env = System.getenv("E2E_BASE_URL");
         if (env != null && !env.isBlank()) return env.replaceAll("/$", "");
         return "http://localhost:" + port;
     }
-
-
-
-
-
     @BeforeEach
     void setUp() throws Exception {
         ChromeOptions options = new ChromeOptions();
 
-        // Jenkins/Docker ortamında HEADLESS zorunludur
         String remoteUrl = System.getenv("SELENIUM_REMOTE_URL");
         if (remoteUrl != null && !remoteUrl.isBlank()) {
             options.addArguments("--headless=new");
@@ -63,10 +56,8 @@ public class Senaryo2AdminRequestIT {
         );
 
         if (remoteUrl != null && !remoteUrl.isBlank()) {
-            // Jenkins: selenium konteynerine bağlan
             driver = new RemoteWebDriver(new URL(remoteUrl), options);
         } else {
-            // Local: Kendi bilgisayarındaki ChromeDriver'ı kullan
             driver = new org.openqa.selenium.chrome.ChromeDriver(options);
         }
 
@@ -80,7 +71,6 @@ public class Senaryo2AdminRequestIT {
 
     @Test
     void sc2_userRequestsAdminRole_shouldPass() throws Exception {
-        // baseUrl() kullanarak dinamik URL yönetimi sağlıyoruz
         driver.get(baseUrl() + "/ui/senaryo2.html");
 
         WebElement baseUrlInput = wait.until(

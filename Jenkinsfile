@@ -54,17 +54,18 @@ pipeline {
     }
 
     stage('Uçtan Uca Testler (Selenium E2E)') {
-          steps {
-            sh '''
-              set -e
-              echo "=== E2E Testleri Başlıyor ==="
+              steps {
+                sh '''
+                  set -e
+                  echo "=== E2E Testleri Başlıyor ==="
 
-              # Parametreleri Maven'a iletiyoruz
-              ./mvnw -B failsafe:integration-test failsafe:verify \
-                -Dselenium.remoteUrl=http://bilet-selenium:4444/wd/hub \
-                -De2e.baseUrl=http://bilet-app:8080
-            '''
-          }
+                  # OpenTelemetry hatasını engellemek için -Dotel.sdk.disabled=true eklendi
+                  ./mvnw -B failsafe:integration-test failsafe:verify \
+                    -Dselenium.remoteUrl=http://bilet-selenium:4444/wd/hub \
+                    -De2e.baseUrl=http://bilet-app:8080 \
+                    -Dotel.sdk.disabled=true
+                '''
+              }
 
       post {
         always {

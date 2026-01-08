@@ -41,6 +41,7 @@ public class Senaryo7StokIT {
     }
 
 
+
     @AfterEach
     void tearDown() { if (driver != null) driver.quit(); }
 

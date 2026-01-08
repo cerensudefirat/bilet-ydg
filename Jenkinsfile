@@ -70,7 +70,7 @@ pipeline {
           $COMPOSE_CMD run --rm \
             -e E2E_BASE_URL=http://app:8080 \
             -e SELENIUM_REMOTE_URL=http://selenium:4444/wd/hub \
-            e2e bash -lc "./mvnw -B failsafe:integration-test failsafe:verify \
+            e2e bash -lc "./mvnw -B failsafe:integration-test failsafe:verify ...
             -Dselenium.remoteUrl=http://selenium:4444/wd/hub \
             -De2e.baseUrl=http://app:8080"
         '''

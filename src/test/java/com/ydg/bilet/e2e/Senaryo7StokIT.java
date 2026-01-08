@@ -13,6 +13,10 @@ import java.net.URL;
 import java.time.Duration;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+
+
+
+
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
 public class Senaryo7StokIT {

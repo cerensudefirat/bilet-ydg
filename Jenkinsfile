@@ -41,7 +41,7 @@ pipeline {
         sh '''
           set +e
           $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" down -v --remove-orphans || true
-          docker rm -f bilet-app bilet-db bilet-selenium || true
+          docker rm -f bilet-app bilet-db bilet-selenium bilet-e2e || true
 
           set -e
           $COMPOSE_CMD -p "$COMPOSE_PROJECT_NAME" up -d --build

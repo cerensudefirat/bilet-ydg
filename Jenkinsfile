@@ -50,14 +50,14 @@ pipeline {
       steps {
         sh '''
           set -e
-          # Eğer integration testlerin ayrı profile/flag istiyorsa burada ekle
-          ./mvnw -B failsafe:integration-test failsafe:verify -DskipUTs=true
+          ./mvnw -B failsafe:integration-test failsafe:verify \
+            -Dit.test="com.ydg.bilet.security.*IT,com.ydg.bilet.it.*IT" \
+            -DskipUTs=true
         '''
       }
-      post {
-        always { junit '**/target/failsafe-reports/*.xml' }
-      }
+      post { always { junit '**/target/failsafe-reports/*.xml' } }
     }
+
 
     stage('Docker Ortamının Başlatılması') {
       steps {
@@ -99,18 +99,16 @@ pipeline {
       steps {
         sh '''
           set -e
-          echo "=== E2E Testleri Başlıyor ==="
-
           ./mvnw -B failsafe:integration-test failsafe:verify \
+            -Dit.test="com.ydg.bilet.e2e.*IT" \
             -Dselenium.remoteUrl=http://bilet-selenium:4444/wd/hub \
             -De2e.baseUrl=http://bilet-app:8080 \
             -Dotel.sdk.disabled=true
         '''
       }
-      post {
-        always { junit '**/target/failsafe-reports/*.xml' }
-      }
+      post { always { junit '**/target/failsafe-reports/*.xml' } }
     }
+
 
     stage('E2E - Log / Artefact Toplama') {
       steps {

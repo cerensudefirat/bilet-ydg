@@ -16,7 +16,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    // ✅ 1) Actuator güvenliği (en yüksek öncelik)
     @Bean
     @Order(1)
     SecurityFilterChain actuatorChain(HttpSecurity http) throws Exception {
@@ -31,7 +30,6 @@ public class SecurityConfig {
                 .build();
     }
 
-    // ✅ 2) Uygulama güvenliği
     @Bean
     @Order(2)
     public SecurityFilterChain appChain(HttpSecurity http) throws Exception {

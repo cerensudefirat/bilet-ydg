@@ -85,9 +85,6 @@ public class Senaryo2AdminRequestIT {
 
         if (result.contains("FAIL")) {
             dumpArtifacts("senaryo2", uiLog);
-            System.out.println("\n--- SENARYO 2 UI LOG (FAIL) ---");
-            System.out.println(uiLog);
-            System.out.println("--------------------------------\n");
         }
 
         assertEquals("RESULT: PASS", result);

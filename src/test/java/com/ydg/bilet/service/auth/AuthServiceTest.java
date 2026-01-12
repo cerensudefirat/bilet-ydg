@@ -54,15 +54,11 @@ class AuthServiceTest {
         req.setSifre("123456");
         req.setAd("Ali");
         req.setSoyad("Veli");
-
         when(kullaniciRepository.existsByEmail("user@test.com")).thenReturn(false);
         when(passwordEncoder.encode("123456")).thenReturn("ENCODED_PASS");
-
         authService.register(req);
-
         ArgumentCaptor<Kullanici> captor = ArgumentCaptor.forClass(Kullanici.class);
         verify(kullaniciRepository).save(captor.capture());
-
         Kullanici saved = captor.getValue();
         assertEquals("user@test.com", saved.getEmail());
         assertEquals("ENCODED_PASS", saved.getSifre());
@@ -88,17 +84,13 @@ class AuthServiceTest {
         LoginRequest req = new LoginRequest();
         req.setEmail("user@test.com");
         req.setSifre("123");
-
         Kullanici k = new Kullanici();
         k.setEmail("user@test.com");
         k.setSifre("ENC");
         k.setAktif(false);
-
         when(kullaniciRepository.findByEmail("user@test.com")).thenReturn(Optional.of(k));
-
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(req));
         assertTrue(ex.getMessage().toLowerCase().contains("pasif"));
-
         verify(passwordEncoder, never()).matches(anyString(), anyString());
     }
 
@@ -107,15 +99,12 @@ class AuthServiceTest {
         LoginRequest req = new LoginRequest();
         req.setEmail("user@test.com");
         req.setSifre("wrong");
-
         Kullanici k = new Kullanici();
         k.setEmail("user@test.com");
         k.setSifre("ENC");
         k.setAktif(true);
-
         when(kullaniciRepository.findByEmail("user@test.com")).thenReturn(Optional.of(k));
         when(passwordEncoder.matches("wrong", "ENC")).thenReturn(false);
-
         RuntimeException ex = assertThrows(RuntimeException.class, () -> authService.login(req));
         assertTrue(ex.getMessage().toLowerCase().contains("şifre") || ex.getMessage().toLowerCase().contains("sifre"));
     }

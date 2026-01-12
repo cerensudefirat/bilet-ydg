@@ -58,6 +58,9 @@ public class Senaryo3BiletAlIT {
         baseUrlInput.clear();
         baseUrlInput.sendKeys(baseUrl());
 
+
+
+
         driver.findElement(By.id("btnSc3")).click();
 
         WebElement badge = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("resultBadge")));

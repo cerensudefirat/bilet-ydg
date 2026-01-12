@@ -1,8 +1,11 @@
 package com.ydg.bilet.config;
 
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -13,8 +16,25 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    // ✅ 1) Actuator güvenliği (en yüksek öncelik)
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    SecurityFilterChain actuatorChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher(EndpointRequest.toAnyEndpoint())
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(EndpointRequest.to("health", "info")).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .httpBasic(Customizer.withDefaults())
+                .build();
+    }
+
+    // ✅ 2) Uygulama güvenliği
+    @Bean
+    @Order(2)
+    public SecurityFilterChain appChain(HttpSecurity http) throws Exception {
 
         BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
         entryPoint.setRealmName("YDG Bilet");
@@ -39,8 +59,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/mekan/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/etkinlik/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
 
                         .anyRequest().authenticated()
                 )

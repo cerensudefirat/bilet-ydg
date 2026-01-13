@@ -110,6 +110,8 @@ pipeline {
     }
 
 
+
+
     stage('E2E - Log / Artefact Toplama') {
       steps {
         sh '''
